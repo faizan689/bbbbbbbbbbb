@@ -22,16 +22,16 @@ export default function Marketplace() {
   });
 
   const filteredProperties = properties.filter(property => {
-    if (filters.location && !property.location.toLowerCase().includes(filters.location.toLowerCase())) {
+    if (filters.location && filters.location !== "all" && !property.location.toLowerCase().includes(filters.location.toLowerCase())) {
       return false;
     }
-    if (filters.propertyType && property.propertyType !== filters.propertyType) {
+    if (filters.propertyType && filters.propertyType !== "all" && property.propertyType !== filters.propertyType) {
       return false;
     }
     if (filters.search && !property.title.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    if (filters.expectedROI) {
+    if (filters.expectedROI && filters.expectedROI !== "all") {
       const roi = parseFloat(property.expectedROI);
       switch (filters.expectedROI) {
         case "8-12":
@@ -45,7 +45,7 @@ export default function Marketplace() {
           break;
       }
     }
-    if (filters.investmentRange) {
+    if (filters.investmentRange && filters.investmentRange !== "all") {
       const minInvestment = parseFloat(property.minInvestment);
       switch (filters.investmentRange) {
         case "100-1000":
@@ -117,7 +117,7 @@ export default function Marketplace() {
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
                     <SelectItem value="New York">New York</SelectItem>
                     <SelectItem value="California">California</SelectItem>
                     <SelectItem value="Florida">Florida</SelectItem>
@@ -134,7 +134,7 @@ export default function Marketplace() {
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="Residential">Residential</SelectItem>
                     <SelectItem value="Commercial">Commercial</SelectItem>
                     <SelectItem value="Industrial">Industrial</SelectItem>
@@ -149,7 +149,7 @@ export default function Marketplace() {
                     <SelectValue placeholder="Any ROI" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any ROI</SelectItem>
+                    <SelectItem value="all">Any ROI</SelectItem>
                     <SelectItem value="8-12">8-12%</SelectItem>
                     <SelectItem value="12-16">12-16%</SelectItem>
                     <SelectItem value="16+">16%+</SelectItem>
@@ -164,7 +164,7 @@ export default function Marketplace() {
                     <SelectValue placeholder="Any Amount" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Amount</SelectItem>
+                    <SelectItem value="all">Any Amount</SelectItem>
                     <SelectItem value="100-1000">$100 - $1,000</SelectItem>
                     <SelectItem value="1000-10000">$1,000 - $10,000</SelectItem>
                     <SelectItem value="10000+">$10,000+</SelectItem>
