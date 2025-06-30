@@ -17,39 +17,49 @@ const data = [
 
 export default function PortfolioChart() {
   return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={data}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart
+        data={data}
+        margin={{
+          top: 10,
+          right: 30,
+          left: 20,
+          bottom: 10,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+        <XAxis 
+          dataKey="month" 
+          className="text-xs"
+          tick={{ fontSize: 12 }}
+          axisLine={{ stroke: 'hsl(var(--border))' }}
+        />
+        <YAxis 
+          className="text-xs"
+          tick={{ fontSize: 12 }}
+          axisLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+        />
+        <Tooltip 
+          formatter={(value) => [`$${value?.toLocaleString()}`, 'Portfolio Value']}
+          labelFormatter={(label) => `Month: ${label}`}
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            borderColor: 'hsl(var(--border))',
+            borderRadius: '8px',
+            color: 'hsl(var(--foreground))',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
           }}
-        >
-          <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-          <XAxis dataKey="month" className="text-xs" />
-          <YAxis className="text-xs" />
-          <Tooltip 
-            formatter={(value) => [`$${value?.toLocaleString()}`, 'Portfolio Value']}
-            labelFormatter={(label) => `Month: ${label}`}
-            contentStyle={{
-              backgroundColor: 'hsl(var(--card))',
-              borderColor: 'hsl(var(--border))',
-              borderRadius: '8px',
-            }}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke="hsl(var(--primary))" 
-            fill="hsl(var(--primary))"
-            fillOpacity={0.2}
-            strokeWidth={2}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+        />
+        <Area 
+          type="monotone" 
+          dataKey="value" 
+          stroke="hsl(var(--primary))" 
+          fill="hsl(var(--primary))"
+          fillOpacity={0.2}
+          strokeWidth={3}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
