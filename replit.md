@@ -119,10 +119,12 @@ The application uses a relational database schema with the following core entiti
 - Database migrations applied using Drizzle Kit
 
 ### Database Strategy
-- PostgreSQL as primary database with connection pooling
-- Drizzle migrations for schema version control
+- PostgreSQL as primary database with connection pooling via Neon serverless
+- Drizzle migrations for schema version control with drizzle-kit
+- DatabaseStorage implementation replacing in-memory storage
+- Complete relational schema with foreign key relationships
+- Automated seeding with sample real estate data
 - Environment-based configuration for different deployment stages
-- Backup and recovery procedures for production data
 
 ### Scalability Considerations
 - Modular architecture supports horizontal scaling
@@ -133,6 +135,7 @@ The application uses a relational database schema with the following core entiti
 ## Changelog
 
 - June 30, 2025. Initial setup
+- June 30, 2025. Integrated PostgreSQL database with Drizzle ORM, replacing in-memory storage with persistent data layer. Added complete relational schema with foreign key relationships and automated seeding.
 
 ## User Preferences
 

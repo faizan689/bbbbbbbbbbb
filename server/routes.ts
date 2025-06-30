@@ -118,12 +118,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update proposal vote counts
       const proposal = await storage.getProposal(validatedData.proposalId);
       if (proposal) {
+        const currentVotesFor = proposal.votesFor ?? 0;
+        const currentVotesAgainst = proposal.votesAgainst ?? 0;
+        
         const newVotesFor = validatedData.voteType === "for" 
-          ? proposal.votesFor + validatedData.votingPower 
-          : proposal.votesFor;
+          ? currentVotesFor + validatedData.votingPower 
+          : currentVotesFor;
         const newVotesAgainst = validatedData.voteType === "against" 
-          ? proposal.votesAgainst + validatedData.votingPower 
-          : proposal.votesAgainst;
+          ? currentVotesAgainst + validatedData.votingPower 
+          : currentVotesAgainst;
         
         await storage.updateProposalVotes(validatedData.proposalId, newVotesFor, newVotesAgainst);
       }

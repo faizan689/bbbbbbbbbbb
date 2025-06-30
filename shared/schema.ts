@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, boolean, decimal, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -72,6 +73,60 @@ export const votes = pgTable("votes", {
   votingPower: integer("voting_power").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  investments: many(investments),
+  transactions: many(transactions),
+  votes: many(votes),
+}));
+
+export const propertiesRelations = relations(properties, ({ many }) => ({
+  investments: many(investments),
+  transactions: many(transactions),
+  proposals: many(proposals),
+}));
+
+export const investmentsRelations = relations(investments, ({ one }) => ({
+  user: one(users, {
+    fields: [investments.userId],
+    references: [users.id],
+  }),
+  property: one(properties, {
+    fields: [investments.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.userId],
+    references: [users.id],
+  }),
+  property: one(properties, {
+    fields: [transactions.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+export const proposalsRelations = relations(proposals, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [proposals.propertyId],
+    references: [properties.id],
+  }),
+  votes: many(votes),
+}));
+
+export const votesRelations = relations(votes, ({ one }) => ({
+  user: one(users, {
+    fields: [votes.userId],
+    references: [users.id],
+  }),
+  proposal: one(proposals, {
+    fields: [votes.proposalId],
+    references: [proposals.id],
+  }),
+}));
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
