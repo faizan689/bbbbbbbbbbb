@@ -23,14 +23,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     isConnected: false,
     address: null,
     balance: 0,
-    network: "Internet Computer",
+    network: "Ethereum Mainnet",
     isConnecting: false,
   });
 
   // Simulate checking for existing wallet connection on mount
   useEffect(() => {
     const checkWalletConnection = async () => {
-      // In a real ICP app, this would check for Internet Identity or other wallet connections
+      // Check for saved wallet connection
       const savedConnection = localStorage.getItem("wallet_connection");
       if (savedConnection) {
         const connectionData = JSON.parse(savedConnection);
@@ -53,19 +53,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Simulate wallet connection delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Mock wallet connection - in production this would integrate with ICP wallets
-      const mockAddress = `rdmx6-jaaaa-aaaah-qcaiq-cai`;
+      // Use the provided Ethereum address
+      const ethAddress = "0x95868a76A768Ea791B28a4866106f3743dbEA2e8";
       const mockBalance = Math.floor(Math.random() * 10000) + 5000;
 
       const connectionData = {
-        address: mockAddress,
+        address: ethAddress,
         balance: mockBalance,
       };
 
       setWallet(prev => ({
         ...prev,
         isConnected: true,
-        address: mockAddress,
+        address: ethAddress,
         balance: mockBalance,
         isConnecting: false,
       }));
@@ -75,7 +75,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
       toast({
         title: "Wallet Connected",
-        description: `Successfully connected to ${mockAddress.substring(0, 8)}...`,
+        description: `Successfully connected to ${ethAddress.substring(0, 8)}... with ${mockBalance.toLocaleString()} ETH`,
       });
 
       // Simulate balance updates every 30 seconds

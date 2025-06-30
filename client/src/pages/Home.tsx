@@ -31,120 +31,52 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-500 text-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                  Designing Your
-                  <br />
-                  <span className="text-white/90">Next Chapter.</span>
-                </h1>
-                <p className="text-lg md:text-xl text-white/80 max-w-lg leading-relaxed">
-                  Own fractional shares of premium real estate properties through blockchain tokenization on the Internet Computer Protocol.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/marketplace">
-                  <Button size="lg" className="bg-white text-teal-600 hover:bg-white/90 font-semibold px-8 py-4 text-lg shadow-lg">
-                    Get Started
-                  </Button>
-                </Link>
-                <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10 font-semibold px-8 py-4 text-lg">
-                  ▶ See How It Works
+      <section className="gradient-bg text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
+              Fractional Real Estate
+              <br />
+              <span className="text-accent">Investment Platform</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
+              Invest in premium real estate with blockchain-powered fractional ownership. 
+              Build your portfolio with as little as $100.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/marketplace">
+                <Button size="lg" className="bg-accent hover:bg-accent/90 text-white">
+                  Start Investing
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-              </div>
-            </div>
-
-            {/* Right Content - Building Image */}
-            <div className="relative">
-              <div className="relative z-10">
-                <svg viewBox="0 0 400 300" className="w-full h-auto">
-                  {/* Modern Building Structure */}
-                  <defs>
-                    <linearGradient id="buildingGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#f1f5f9" />
-                      <stop offset="100%" stopColor="#e2e8f0" />
-                    </linearGradient>
-                    <linearGradient id="buildingGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#cbd5e1" />
-                      <stop offset="100%" stopColor="#94a3b8" />
-                    </linearGradient>
-                    <linearGradient id="buildingGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#64748b" />
-                      <stop offset="100%" stopColor="#475569" />
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* Main building structure */}
-                  <rect x="80" y="100" width="120" height="180" fill="url(#buildingGrad1)" rx="4" />
-                  <rect x="200" y="80" width="100" height="200" fill="url(#buildingGrad2)" rx="4" />
-                  <rect x="300" y="120" width="80" height="160" fill="url(#buildingGrad3)" rx="4" />
-                  
-                  {/* Building details - windows */}
-                  <rect x="90" y="120" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="110" y="120" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="130" y="120" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="150" y="120" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="170" y="120" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  
-                  {/* More windows */}
-                  <rect x="90" y="150" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="110" y="150" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="130" y="150" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="150" y="150" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="170" y="150" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  
-                  {/* Second building windows */}
-                  <rect x="210" y="100" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="230" y="100" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="250" y="100" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="270" y="100" width="12" height="16" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  
-                  {/* Third building windows */}
-                  <rect x="310" y="140" width="10" height="14" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="325" y="140" width="10" height="14" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="340" y="140" width="10" height="14" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  <rect x="355" y="140" width="10" height="14" fill="#0ea5e9" opacity="0.7" rx="2" />
-                  
-                  {/* Balconies/terraces */}
-                  <rect x="75" y="180" width="130" height="8" fill="url(#buildingGrad2)" />
-                  <rect x="195" y="160" width="110" height="8" fill="url(#buildingGrad1)" />
-                </svg>
-              </div>
-              
-              {/* Floating elements */}
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm rounded-lg p-3 text-sm">
-                <div className="text-white font-semibold">$2.4M</div>
-                <div className="text-white/70 text-xs">Property Value</div>
-              </div>
+              </Link>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
+                Learn More
+              </Button>
             </div>
           </div>
         </div>
-        
-        {/* Stats Section */}
-        <div className="bg-white/10 backdrop-blur-sm border-t border-white/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <div className="space-y-2">
-                <div className="text-2xl md:text-3xl font-bold text-white">100k+</div>
-                <div className="text-white/70 text-sm">Properties Tokenized</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-2xl md:text-3xl font-bold text-white">100+</div>
-                <div className="text-white/70 text-sm">Active Investors</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-2xl md:text-3xl font-bold text-white">$50M+</div>
-                <div className="text-white/70 text-sm">Total Value Locked</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-2xl md:text-3xl font-bold text-white">12.5%</div>
-                <div className="text-white/70 text-sm">Average ROI</div>
-              </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold mb-2 text-primary">$2.4B+</div>
+              <div className="text-gray-600 dark:text-gray-300">Total Assets</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold mb-2 text-secondary">15,000+</div>
+              <div className="text-gray-600 dark:text-gray-300">Active Investors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold mb-2 text-accent">12.4%</div>
+              <div className="text-gray-600 dark:text-gray-300">Avg. Annual Return</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold mb-2 text-purple-600">850+</div>
+              <div className="text-gray-600 dark:text-gray-300">Properties</div>
             </div>
           </div>
         </div>

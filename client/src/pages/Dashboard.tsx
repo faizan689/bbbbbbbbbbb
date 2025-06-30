@@ -16,11 +16,11 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+  const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
   });
 
-  if (isLoading || !dashboardData) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-800 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,6 +31,29 @@ export default function Dashboard() {
                 <div key={i} className="h-32 bg-gray-300 dark:bg-gray-700 rounded-xl"></div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-800 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Dashboard Unavailable
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Unable to load dashboard data. Please try again later.
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90"
+            >
+              Retry
+            </button>
           </div>
         </div>
       </div>
@@ -69,10 +92,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-primary-foreground/80 text-sm font-medium">Total Portfolio Value</p>
-                  <p className="text-3xl font-bold">{formatCurrency(dashboardData.totalPortfolioValue)}</p>
+                  <p className="text-3xl font-bold">{formatCurrency(dashboardData?.totalPortfolioValue || 0)}</p>
                   <p className="text-primary-foreground/80 text-sm flex items-center mt-2">
                     <ArrowUpIcon className="h-4 w-4 mr-1" />
-                    {formatPercentage(dashboardData.avgROI)} this month
+                    {formatPercentage(dashboardData?.avgROI || 0)} this month
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-primary-foreground/60" />
@@ -85,7 +108,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-secondary-foreground/80 text-sm font-medium">Active Properties</p>
-                  <p className="text-3xl font-bold">{dashboardData.activeProperties}</p>
+                  <p className="text-3xl font-bold">{dashboardData?.activeProperties || 0}</p>
                   <p className="text-secondary-foreground/80 text-sm flex items-center mt-2">
                     <ArrowUpIcon className="h-4 w-4 mr-1" />
                     2 new this month
@@ -101,7 +124,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-accent-foreground/80 text-sm font-medium">Monthly Returns</p>
-                  <p className="text-3xl font-bold">{formatCurrency(dashboardData.monthlyReturns)}</p>
+                  <p className="text-3xl font-bold">{formatCurrency(dashboardData?.monthlyReturns || 0)}</p>
                   <p className="text-accent-foreground/80 text-sm flex items-center mt-2">
                     <ArrowUpIcon className="h-4 w-4 mr-1" />
                     +8.2% vs last month
@@ -117,10 +140,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium">Token Balance</p>
-                  <p className="text-3xl font-bold">{dashboardData.tokenBalance.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">{(dashboardData?.tokenBalance || 0).toLocaleString()}</p>
                   <p className="text-purple-200 text-sm flex items-center mt-2">
                     <Wallet className="h-4 w-4 mr-1" />
-                    RTC Tokens
+                    ETH Balance
                   </p>
                 </div>
                 <Wallet className="h-8 w-8 text-purple-200" />
@@ -154,7 +177,7 @@ export default function Dashboard() {
               <CardTitle>Asset Allocation</CardTitle>
             </CardHeader>
             <CardContent>
-              <AssetAllocationChart totalValue={dashboardData.totalPortfolioValue} />
+              <AssetAllocationChart totalValue={dashboardData?.totalPortfolioValue || 0} />
             </CardContent>
           </Card>
         </div>
@@ -166,7 +189,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardData.recentTransactions.length === 0 ? (
+              {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.length === 0) ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                   No recent transactions found.
                 </p>
@@ -178,16 +201,16 @@ export default function Dashboard() {
                         <ArrowUpIcon className="h-5 w-5 text-secondary" />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{transaction.type}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{transaction?.type || 'Unknown Transaction'}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">Property Transaction</div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-medium text-gray-900 dark:text-white">
-                        {formatCurrency(parseFloat(transaction.amount))}
+                        {formatCurrency(parseFloat(transaction?.amount || '0'))}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
+                        {transaction?.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
                   </div>
