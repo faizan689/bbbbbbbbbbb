@@ -3,72 +3,91 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPropertySchema, insertInvestmentSchema, insertTransactionSchema, insertVoteSchema } from "@shared/schema";
 import { z } from "zod";
+import { log } from "./vite";
+
+// Input validation schemas
+const idParamSchema = z.object({
+  id: z.string().transform((val) => {
+    const parsed = parseInt(val);
+    if (isNaN(parsed) || parsed < 1) {
+      throw new Error("Invalid ID parameter");
+    }
+    return parsed;
+  })
+});
+
+// Error handling middleware
+const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// Custom error class for better error handling
+class ApiError extends Error {
+  constructor(public statusCode: number, message: string, public code?: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Properties
-  app.get("/api/properties", async (req, res) => {
-    try {
-      const properties = await storage.getProperties();
-      res.json(properties);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch properties" });
-    }
-  });
+  app.get("/api/properties", asyncHandler(async (req: any, res: any) => {
+    log("GET /api/properties", "api");
+    const properties = await storage.getProperties();
+    res.json(properties);
+  }));
 
-  app.get("/api/properties/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const property = await storage.getProperty(id);
-      if (!property) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      res.json(property);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch property" });
+  app.get("/api/properties/:id", asyncHandler(async (req: any, res: any) => {
+    const { id } = idParamSchema.parse(req.params);
+    log(`GET /api/properties/${id}`, "api");
+    
+    const property = await storage.getProperty(id);
+    if (!property) {
+      throw new ApiError(404, "Property not found", "PROPERTY_NOT_FOUND");
     }
-  });
+    res.json(property);
+  }));
 
   // Investments
-  app.get("/api/investments", async (req, res) => {
-    try {
-      const investments = await storage.getInvestments();
-      res.json(investments);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch investments" });
+  app.get("/api/investments", asyncHandler(async (req: any, res: any) => {
+    log("GET /api/investments", "api");
+    const investments = await storage.getInvestments();
+    res.json(investments);
+  }));
+
+  app.post("/api/investments", asyncHandler(async (req: any, res: any) => {
+    log("POST /api/investments", "api");
+    const validatedData = insertInvestmentSchema.parse(req.body);
+    
+    // Check if property exists and has enough tokens
+    const property = await storage.getProperty(validatedData.propertyId);
+    if (!property) {
+      throw new ApiError(404, "Property not found", "PROPERTY_NOT_FOUND");
     }
-  });
-
-  app.post("/api/investments", async (req, res) => {
-    try {
-      const validatedData = insertInvestmentSchema.parse(req.body);
-      const investment = await storage.createInvestment(validatedData);
-      
-      // Update property available tokens
-      const property = await storage.getProperty(validatedData.propertyId);
-      if (property) {
-        const newAvailableTokens = property.availableTokens - validatedData.tokensOwned;
-        await storage.updatePropertyTokens(validatedData.propertyId, newAvailableTokens);
-      }
-
-      // Create transaction record
-      await storage.createTransaction({
-        userId: validatedData.userId,
-        propertyId: validatedData.propertyId,
-        type: "purchase",
-        amount: validatedData.investmentAmount,
-        tokens: validatedData.tokensOwned,
-        transactionHash: `0x${Math.random().toString(16).substring(2, 66)}`
-      });
-
-      res.json(investment);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create investment" });
-      }
+    
+    if (property.availableTokens < validatedData.tokensOwned) {
+      throw new ApiError(400, "Insufficient tokens available", "INSUFFICIENT_TOKENS");
     }
-  });
+    
+    // Create investment
+    const investment = await storage.createInvestment(validatedData);
+    
+    // Update property available tokens
+    const newAvailableTokens = property.availableTokens - validatedData.tokensOwned;
+    await storage.updatePropertyTokens(validatedData.propertyId, newAvailableTokens);
+    
+    // Create transaction record
+    await storage.createTransaction({
+      userId: validatedData.userId,
+      propertyId: validatedData.propertyId,
+      type: "purchase",
+      amount: validatedData.investmentAmount,
+      tokens: validatedData.tokensOwned,
+      transactionHash: `0x${Math.random().toString(16).substring(2, 66)}`
+    });
+    
+    res.status(201).json(investment);
+  }));
 
   // Transactions
   app.get("/api/transactions", async (req, res) => {
