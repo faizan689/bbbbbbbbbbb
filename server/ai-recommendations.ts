@@ -3,7 +3,9 @@ import { storage } from "./storage.js";
 import type { Property, Investment, User } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 export interface PropertyRecommendation {
   property: Property;
@@ -27,8 +29,8 @@ export class AIRecommendationEngine {
       const user = await storage.getUser(userId);
       const investments = await storage.getInvestmentsByUser(userId);
       
-      if (!user || investments.length === 0) {
-        // Return default profile for new users
+      if (!user || investments.length === 0 || !openai) {
+        // Return default profile for new users or when OpenAI is not available
         return {
           preferredInvestmentRange: { min: 1000, max: 50000 },
           riskTolerance: 'moderate',
@@ -63,6 +65,10 @@ export class AIRecommendationEngine {
           "investmentGoals": ["goal1", "goal2"]
         }
       `;
+
+      if (!openai) {
+        throw new Error("OpenAI API not configured");
+      }
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -154,6 +160,11 @@ export class AIRecommendationEngine {
         - Market potential and growth prospects
       `;
 
+      if (!openai) {
+        // Return fallback recommendations when OpenAI is not available
+        return this.generateFallbackRecommendations(userProfile, await storage.getProperties(), limit);
+      }
+
       let response;
       try {
         response = await openai.chat.completions.create({
@@ -242,6 +253,10 @@ export class AIRecommendationEngine {
 
         Write a comprehensive, personalized explanation (2-3 paragraphs) of why this property aligns with their investment profile and goals. Be specific about the financial benefits, risk factors, and strategic fit.
       `;
+
+      if (!openai) {
+        return "This property recommendation is based on your investment profile and preferences. OpenAI integration is not configured for detailed analysis.";
+      }
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

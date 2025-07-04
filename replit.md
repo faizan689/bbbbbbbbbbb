@@ -86,7 +86,7 @@ The application uses a relational database schema with the following core entiti
 ## External Dependencies
 
 ### Core Dependencies
-- **@neondatabase/serverless**: PostgreSQL database connectivity
+- **pg**: PostgreSQL database connectivity (Supabase compatible)
 - **drizzle-orm**: Type-safe database operations and migrations
 - **@tanstack/react-query**: Server state management and caching
 - **@radix-ui/***: Accessible UI primitive components
@@ -119,7 +119,7 @@ The application uses a relational database schema with the following core entiti
 - Database migrations applied using Drizzle Kit
 
 ### Database Strategy
-- PostgreSQL as primary database with connection pooling via Supabase
+- PostgreSQL as primary database (configurable for Supabase or Replit database)
 - Drizzle migrations for schema version control with drizzle-kit
 - DatabaseStorage implementation replacing in-memory storage
 - Complete relational schema with foreign key relationships
