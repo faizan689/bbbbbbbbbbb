@@ -407,15 +407,15 @@ export default function Portfolio() {
 
         {/* Sell Investment Dialog */}
         <Dialog open={sellDialogOpen} onOpenChange={setSellDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md" aria-describedby="sell-dialog-description">
             <DialogHeader>
               <DialogTitle>Sell Investment</DialogTitle>
-              <DialogDescription>
+              <DialogDescription id="sell-dialog-description">
                 {selectedInvestment && (
                   <>
                     Sell tokens from your investment in {selectedInvestment.property?.title}.
                     <br />
-                    Current Value: {formatCurrency(selectedInvestment.currentValue)}
+                    Current Value: {formatCurrency(typeof selectedInvestment.currentValue === 'string' ? parseFloat(selectedInvestment.currentValue) : selectedInvestment.currentValue)}
                     <br />
                     Tokens Owned: {selectedInvestment.tokensOwned.toLocaleString()}
                   </>
@@ -442,7 +442,7 @@ export default function Portfolio() {
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="text-sm space-y-1">
                     <div>Tokens to sell: {Math.floor((selectedInvestment.tokensOwned * parseFloat(sellPercentage)) / 100).toLocaleString()}</div>
-                    <div>Sale amount: {formatCurrency(Math.floor((selectedInvestment.currentValue * parseFloat(sellPercentage)) / 100))}</div>
+                    <div>Sale amount: {formatCurrency(Math.floor(((typeof selectedInvestment.currentValue === 'string' ? parseFloat(selectedInvestment.currentValue) : selectedInvestment.currentValue) * parseFloat(sellPercentage)) / 100))}</div>
                   </div>
                 </div>
               )}

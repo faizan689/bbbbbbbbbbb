@@ -62,9 +62,9 @@ export default function AssetAllocationChart({ totalValue }: AssetAllocationChar
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={70}
-              outerRadius={130}
-              paddingAngle={3}
+              innerRadius={80}
+              outerRadius={140}
+              paddingAngle={2}
               dataKey="value"
               stroke="none"
             >
@@ -77,24 +77,27 @@ export default function AssetAllocationChart({ totalValue }: AssetAllocationChar
               ))}
             </Pie>
             <Tooltip 
+              offset={20}
+              position={{ x: undefined, y: undefined }}
+              allowEscapeViewBox={{ x: false, y: false }}
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-card border border-border rounded-lg p-4 shadow-lg backdrop-blur-sm">
-                      <h4 className="font-semibold text-foreground mb-2">{data.name}</h4>
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Allocation</span>
-                          <span className="font-bold text-lg">{data.value}%</span>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl backdrop-blur-sm z-50">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{data.name}</h4>
+                      <div className="space-y-1 min-w-[120px]">
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Allocation</span>
+                          <span className="font-bold text-base text-gray-900 dark:text-white">{data.value}%</span>
                         </div>
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Value</span>
-                          <span className="font-semibold">{formatCurrency(data.amount)}</span>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Value</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(data.amount)}</span>
                         </div>
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Properties</span>
-                          <span className="font-medium">{Math.floor(data.value / 5)} assets</span>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Properties</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{Math.floor(data.value / 5)} assets</span>
                         </div>
                       </div>
                     </div>
@@ -107,13 +110,13 @@ export default function AssetAllocationChart({ totalValue }: AssetAllocationChar
         </ResponsiveContainer>
         
         {/* Center value display */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="text-center bg-white dark:bg-gray-900 rounded-full p-4 shadow-sm">
+            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {formatCurrency(totalValue)}
             </div>
-            <div className="text-sm text-muted-foreground font-medium mt-1">Total Portfolio</div>
-            <div className="text-xs text-muted-foreground">4 Asset Types</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1">Total Portfolio</div>
+            <div className="text-xs text-gray-500 dark:text-gray-500">4 Asset Types</div>
           </div>
         </div>
       </div>
