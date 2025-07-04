@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { supabaseStorage } from "./supabase-storage.js";
 import { aiRecommendationEngine } from "./ai-recommendations";
 import { insertPropertySchema, insertInvestmentSchema, insertTransactionSchema, insertVoteSchema } from "@shared/schema";
 import { z } from "zod";
@@ -271,6 +272,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const explanation = await aiRecommendationEngine.explainRecommendation(propertyId, userId);
     res.json({ explanation });
+  }));
+
+  // Supabase configuration endpoint for frontend
+  app.get("/api/supabase-config", asyncHandler(async (req, res) => {
+    log("GET /api/supabase-config", "api");
+    
+    // Only provide public configuration
+    res.json({
+      url: process.env.SUPABASE_URL || '',
+      anonKey: process.env.SUPABASE_ANON_KEY || '',
+      configured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+    });
   }));
 
   const httpServer = createServer(app);

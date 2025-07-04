@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ICPWalletProvider } from "@/components/ICPWalletProvider";
+// import { SupabaseAuthProvider } from "@/components/SupabaseAuthProvider";
+// import { SupabaseRealTime } from "@/components/SupabaseRealTime";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
@@ -28,6 +30,7 @@ function Router() {
         <Route path="/recommendations" component={Recommendations} />
         <Route component={NotFound} />
       </Switch>
+
     </div>
   );
 }
@@ -38,11 +41,11 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <ICPWalletProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </ICPWalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </ICPWalletProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
