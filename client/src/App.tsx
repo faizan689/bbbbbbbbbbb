@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { WalletProvider } from "@/components/WalletProvider";
+import { ICPWalletProvider } from "@/components/ICPWalletProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
@@ -36,10 +37,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <WalletProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
+            <ICPWalletProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </ICPWalletProvider>
           </WalletProvider>
         </ThemeProvider>
       </QueryClientProvider>

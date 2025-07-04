@@ -2,13 +2,18 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/ThemeProvider";
 import { useWallet } from "@/components/WalletProvider";
-import { Moon, Sun, Wallet, ChevronDown, LogOut } from "lucide-react";
+import { useICPWallet } from "@/components/ICPWalletProvider";
+import { Moon, Sun, Wallet, ChevronDown, LogOut, Link2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import WalletConnectModal from "@/components/WalletConnectModal";
+import { useState } from "react";
 
 export default function Navbar() {
   const [location] = useLocation();
   const { theme, setTheme } = useTheme();
   const { wallet, connectWallet, disconnectWallet } = useWallet();
+  const { wallet: icpWallet, disconnect: disconnectICP } = useICPWallet();
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const navItems = [
     { path: "/marketplace", label: "Marketplace" },
@@ -55,6 +60,7 @@ export default function Navbar() {
               )}
             </Button>
             
+{/* Traditional Wallet */}
             {wallet.isConnected ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -71,7 +77,7 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="p-3 border-b">
-                    <div className="text-sm font-medium">Wallet Connected</div>
+                    <div className="text-sm font-medium">Ethereum Wallet</div>
                     <div className="text-xs text-muted-foreground">{wallet.address}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Balance: {wallet.balance.toLocaleString()} RTC
@@ -91,15 +97,66 @@ export default function Navbar() {
               <Button 
                 onClick={connectWallet} 
                 disabled={wallet.isConnecting}
-                className="bg-primary hover:bg-primary/90"
+                variant="outline"
+                className="mr-2"
               >
                 <Wallet className="h-4 w-4 mr-2" />
-                {wallet.isConnecting ? "Connecting..." : "Connect Wallet"}
+                {wallet.isConnecting ? "Connecting..." : "Connect ETH"}
+              </Button>
+            )}
+
+            {/* ICP Wallet */}
+            {icpWallet.isConnected ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="default" className="flex items-center space-x-2">
+                    <Link2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {icpWallet.accountId?.substring(0, 8)}...
+                    </span>
+                    <span className="text-xs bg-primary-foreground text-primary px-2 py-1 rounded">
+                      {icpWallet.walletType?.toUpperCase()}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <div className="p-3 border-b">
+                    <div className="text-sm font-medium">ICP Wallet Connected</div>
+                    <div className="text-xs text-muted-foreground">{icpWallet.accountId}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Type: {icpWallet.walletType}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Principal: {icpWallet.principal?.toString().substring(0, 20)}...
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={disconnectICP} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Disconnect ICP Wallet
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                onClick={() => setWalletModalOpen(true)}
+                disabled={icpWallet.isConnecting}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                {icpWallet.isConnecting ? "Connecting..." : "Connect ICP"}
               </Button>
             )}
           </div>
         </div>
       </div>
+      
+      {/* ICP Wallet Connect Modal */}
+      <WalletConnectModal
+        open={walletModalOpen}
+        onOpenChange={setWalletModalOpen}
+      />
     </nav>
   );
 }
