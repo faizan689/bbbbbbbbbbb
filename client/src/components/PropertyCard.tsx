@@ -113,11 +113,17 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
   return (
     <div className="property-card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
-      <img 
-        src={property.imageUrl} 
-        alt={property.title}
-        className="w-full h-48 object-cover"
-      />
+      <div className="relative w-full h-48 bg-gray-200 dark:bg-gray-700">
+        <img 
+          src={property.imageUrl} 
+          alt={property.title}
+          className="w-full h-48 object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop&crop=center`;
+          }}
+        />
+      </div>
       <div className="p-6">
         <div className="flex justify-between items-start mb-3">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white line-clamp-1">

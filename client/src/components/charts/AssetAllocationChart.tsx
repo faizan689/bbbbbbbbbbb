@@ -47,7 +47,7 @@ export default function AssetAllocationChart({ totalValue }: AssetAllocationChar
 
   return (
     <div className="space-y-6">
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <ResponsiveContainer width="100%" height={320}>
           <PieChart>
             <defs>
@@ -77,24 +77,27 @@ export default function AssetAllocationChart({ totalValue }: AssetAllocationChar
               ))}
             </Pie>
             <Tooltip 
+              wrapperStyle={{ zIndex: 1000 }}
+              position={{ x: 0, y: 0 }}
+              allowEscapeViewBox={{ x: false, y: false }}
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-card border border-border rounded-lg p-4 shadow-lg backdrop-blur-sm">
-                      <h4 className="font-semibold text-foreground mb-2">{data.name}</h4>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl backdrop-blur-sm z-50 max-w-xs">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{data.name}</h4>
                       <div className="space-y-1">
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Allocation</span>
-                          <span className="font-bold text-lg">{data.value}%</span>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Allocation</span>
+                          <span className="font-bold text-lg text-gray-900 dark:text-white">{data.value}%</span>
                         </div>
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Value</span>
-                          <span className="font-semibold">{formatCurrency(data.amount)}</span>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Value</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(data.amount)}</span>
                         </div>
-                        <div className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Properties</span>
-                          <span className="font-medium">{Math.floor(data.value / 5)} assets</span>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Properties</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{Math.floor(data.value / 5)} assets</span>
                         </div>
                       </div>
                     </div>
