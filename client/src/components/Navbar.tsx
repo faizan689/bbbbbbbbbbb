@@ -15,6 +15,7 @@ export default function Navbar() {
 
   const navItems = [
     { path: "/marketplace", label: "Marketplace" },
+    { path: "/recommendations", label: "AI Recommendations" },
     { path: "/dashboard", label: "Dashboard" },
     { path: "/portfolio", label: "Portfolio" },
     { path: "/governance", label: "Governance" },

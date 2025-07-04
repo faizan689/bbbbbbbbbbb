@@ -12,6 +12,7 @@ import Marketplace from "@/pages/Marketplace";
 import Dashboard from "@/pages/Dashboard";
 import Portfolio from "@/pages/Portfolio";
 import Governance from "@/pages/Governance";
+import Recommendations from "@/pages/Recommendations";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/portfolio" component={Portfolio} />
         <Route path="/governance" component={Governance} />
+        <Route path="/recommendations" component={Recommendations} />
         <Route component={NotFound} />
       </Switch>
     </div>

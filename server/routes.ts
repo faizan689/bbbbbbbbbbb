@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { aiRecommendationEngine } from "./ai-recommendations";
 import { insertPropertySchema, insertInvestmentSchema, insertTransactionSchema, insertVoteSchema } from "@shared/schema";
 import { z } from "zod";
 import { log } from "./vite";
@@ -244,6 +245,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
+
+  // AI Recommendations routes
+  app.get("/api/recommendations", asyncHandler(async (req: any, res: any) => {
+    log("GET /api/recommendations", "api");
+    const userId = 1; // Use authenticated user ID in real implementation
+    const limit = parseInt(req.query.limit as string) || 5;
+    
+    const recommendations = await aiRecommendationEngine.generateRecommendations(userId, limit);
+    res.json(recommendations);
+  }));
+
+  app.get("/api/recommendations/profile", asyncHandler(async (req: any, res: any) => {
+    log("GET /api/recommendations/profile", "api");
+    const userId = 1; // Use authenticated user ID in real implementation
+    
+    const profile = await aiRecommendationEngine.analyzeUserProfile(userId);
+    res.json(profile);
+  }));
+
+  app.get("/api/recommendations/explain/:id", asyncHandler(async (req: any, res: any) => {
+    const { id: propertyId } = idParamSchema.parse(req.params);
+    log(`GET /api/recommendations/explain/${propertyId}`, "api");
+    const userId = 1; // Use authenticated user ID in real implementation
+    
+    const explanation = await aiRecommendationEngine.explainRecommendation(propertyId, userId);
+    res.json({ explanation });
+  }));
 
   const httpServer = createServer(app);
   return httpServer;
