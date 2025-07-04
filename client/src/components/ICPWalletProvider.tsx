@@ -36,7 +36,13 @@ interface ICPWalletContextType {
   disconnect: () => Promise<void>;
   isWalletInstalled: (walletType: 'plug' | 'stoic') => boolean;
   investInProperty: (propertyId: number, amount: number) => Promise<void>;
-  sellProperty: (investmentId: number) => Promise<void>;
+  sellProperty: (investmentId: number) => Promise<{
+    success: boolean;
+    saleAmount: number;
+    tokensOwned: number;
+    propertyId: number;
+    newBalance: number;
+  }>;
   voteOnProposal: (proposalId: number, voteType: 'for' | 'against') => Promise<void>;
 }
 
@@ -331,36 +337,71 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get investment details first
-      const investmentResponse = await fetch(`/api/investments/${investmentId}`);
-      const investment = await investmentResponse.json();
+      // Get all investments to find the one to sell
+      const investmentsResponse = await fetch('/api/investments');
+      if (!investmentsResponse.ok) {
+        throw new Error('Failed to fetch investments');
+      }
+      
+      const investments = await investmentsResponse.json();
+      const investment = investments.find((inv: any) => inv.id === investmentId);
+      
+      if (!investment) {
+        throw new Error('Investment not found');
+      }
 
-      // Simulate sale transaction
-      const saleResponse = await fetch('/api/transactions', {
+      // Calculate sale amount (current market value)
+      const saleAmount = parseFloat(investment.currentValue);
+      
+      // Create sale transaction record
+      const transactionResponse = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: 1,
+          userId: investment.userId,
           propertyId: investment.propertyId,
           type: 'sale',
-          amount: investment.currentValue,
-          tokensTransferred: investment.tokensOwned,
+          amount: saleAmount.toString(),
+          tokens: investment.tokensOwned,
         }),
       });
 
-      if (!saleResponse.ok) {
-        throw new Error('Sale failed');
+      if (!transactionResponse.ok) {
+        throw new Error('Failed to create sale transaction');
       }
 
-      // Update wallet balance
+      // Update investment status to inactive/sold
+      const updateResponse = await fetch(`/api/investments/${investmentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isActive: false,
+          currentValue: '0', // Sold, no current value
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update investment status');
+      }
+
+      // Update wallet balance with sale proceeds
       setWallet(prev => ({
         ...prev,
-        balance: prev.balance + parseFloat(investment.currentValue),
+        balance: prev.balance + saleAmount,
       }));
 
-      return saleResponse.json();
+      // Return sale details
+      return {
+        success: true,
+        saleAmount,
+        tokensOwned: investment.tokensOwned,
+        propertyId: investment.propertyId,
+        newBalance: wallet.balance + saleAmount,
+      };
     } catch (error) {
       console.error('Sale error:', error);
       throw error;

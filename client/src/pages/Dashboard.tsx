@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PortfolioChart from "@/components/charts/PortfolioChart";
 import AssetAllocationChart from "@/components/charts/AssetAllocationChart";
-import { TrendingUp, Building2, DollarSign, Wallet, ArrowUpIcon, Activity, RefreshCw, ExternalLink } from "lucide-react";
+import { TrendingUp, Building2, DollarSign, Wallet, ArrowUpIcon, Activity, RefreshCw, ExternalLink, TrendingDown } from "lucide-react";
 import { useICPWallet } from "@/components/ICPWalletProvider";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Investment, type Transaction } from "@shared/schema";
 
 interface DashboardData {
@@ -20,7 +22,10 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { wallet } = useICPWallet();
+  const { wallet, sellProperty } = useICPWallet();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
   });
@@ -32,6 +37,51 @@ export default function Dashboard() {
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
+
+  const sellMutation = useMutation({
+    mutationFn: sellProperty,
+    onSuccess: (result: any) => {
+      if (result && result.success) {
+        toast({
+          title: "Property Sold Successfully!",
+          description: `Received ${formatCurrency(result.saleAmount)} in your ICP wallet. New balance: ${result.newBalance.toLocaleString()} RTC`,
+        });
+      } else {
+        toast({
+          title: "Property Sold!",
+          description: "Your property has been sold successfully.",
+        });
+      }
+      // Invalidate and refetch data
+      queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sale Failed",
+        description: error.message || "Failed to sell property",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSellProperty = async (investmentId: number) => {
+    if (!wallet.isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your ICP wallet to sell properties",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await sellMutation.mutateAsync(investmentId);
+    } catch (error) {
+      // Error is handled in the mutation
+    }
+  };
 
   if (isLoading) {
     return (
@@ -277,20 +327,41 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   investments.slice(0, 3).map((investment) => (
-                    <div key={investment.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Property #{investment.propertyId}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {investment.tokensOwned.toLocaleString()} tokens
-                        </p>
+                    <div key={investment.id} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">Property #{investment.propertyId}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {investment.tokensOwned.toLocaleString()} tokens
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {formatCurrency(parseFloat(investment.currentValue))}
+                          </p>
+                          <Badge variant="secondary" className="text-xs">
+                            Active
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {formatCurrency(parseFloat(investment.currentValue))}
-                        </p>
-                        <Badge variant="secondary" className="text-xs">
-                          Active
-                        </Badge>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 text-xs"
+                          onClick={() => handleSellProperty(investment.id)}
+                          disabled={sellMutation.isPending || !wallet.isConnected}
+                        >
+                          <TrendingDown className="h-3 w-3 mr-1" />
+                          {sellMutation.isPending ? 'Selling...' : 'Sell'}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="flex-1 text-xs"
+                        >
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -350,7 +421,7 @@ export default function Dashboard() {
                           {formatCurrency(parseFloat(transaction.amount))}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
+                          {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                     </div>
