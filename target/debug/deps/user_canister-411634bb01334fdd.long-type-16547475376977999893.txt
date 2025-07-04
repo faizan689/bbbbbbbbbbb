@@ -1,1 +1,0 @@
-RefMut<'_, StableBTreeMap<candid::Principal, User, VirtualMemory<Rc<RefCell<std::vec::Vec<u8>>>>>>

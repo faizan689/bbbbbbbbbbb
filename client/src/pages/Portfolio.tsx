@@ -1,32 +1,20 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Eye, TrendingUp, ArrowUpIcon, ArrowDownIcon, Plus, DollarSign, Loader2 } from "lucide-react";
+import { Eye, TrendingUp, ArrowUpIcon, ArrowDownIcon, Plus, DollarSign } from "lucide-react";
 import { type Property, type Investment, type Transaction } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useICPWallet } from "@/components/ICPWalletProvider";
-import { useState } from "react";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function Portfolio() {
   const { toast } = useToast();
-  const { wallet } = useICPWallet();
-  const queryClient = useQueryClient();
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [sellDialogOpen, setSellDialogOpen] = useState(false);
-  const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
-  const [sellPercentage, setSellPercentage] = useState("");
   
   const { data: properties = [] } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
   });
 
-  const { data: investments = [], isLoading: investmentsLoading } = useQuery<Investment[]>({
+  const { data: investments = [] } = useQuery<Investment[]>({
     queryKey: ["/api/investments"],
   });
 
@@ -34,83 +22,36 @@ export default function Portfolio() {
     queryKey: ["/api/transactions"],
   });
 
-  // Sell investment mutation
-  const sellInvestmentMutation = useMutation({
-    mutationFn: async ({ investmentId, percentage }: { investmentId: number; percentage: number }) => {
-      const investment = investments.find(inv => inv.id === investmentId);
-      if (!investment) throw new Error("Investment not found");
-      
-      const sellAmount = Math.floor((investment.tokensOwned * percentage) / 100);
-      const saleValue = Math.floor((parseFloat(investment.currentValue) * percentage) / 100);
-      
-      // Create sell transaction
-      await apiRequest('POST', '/api/transactions', {
-        userId: investment.userId,
-        propertyId: investment.propertyId,
-        type: 'sale',
-        amount: saleValue.toString(),
-        tokens: sellAmount,
-      });
-
-      // Update investment (mark as sold if 100% or update current value)
-      if (percentage === 100) {
-        await apiRequest('PATCH', `/api/investments/${investmentId}`, {
-          isActive: false,
-          currentValue: "0"
-        });
-      } else {
-        const newCurrentValue = parseFloat(investment.currentValue) - saleValue;
-        await apiRequest('PATCH', `/api/investments/${investmentId}`, {
-          currentValue: newCurrentValue.toString()
-        });
-      }
-
-      return { saleValue, tokensOwned: sellAmount, investmentId };
+  // Mock portfolio investments (in real app, these would be filtered by user)
+  const portfolioInvestments = [
+    {
+      id: 1,
+      property: properties.find(p => p.title.includes("Manhattan")) || properties[0],
+      tokensOwned: 1250,
+      investmentAmount: 12500,
+      currentValue: 14275,
+      returns: 1775,
+      returnsPercentage: 14.2
     },
-    onSuccess: (data) => {
-      toast({
-        title: "Sale Successful",
-        description: `Sold ${data.tokensOwned} tokens for $${data.saleValue.toLocaleString()}. Funds added to your wallet.`,
-      });
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      
-      setSellDialogOpen(false);
-      setSelectedInvestment(null);
-      setSellPercentage("");
+    {
+      id: 2,
+      property: properties.find(p => p.title.includes("Downtown")) || properties[1],
+      tokensOwned: 800,
+      investmentAmount: 8000,
+      currentValue: 8944,
+      returns: 944,
+      returnsPercentage: 11.8
     },
-    onError: (error: any) => {
-      toast({
-        title: "Sale Failed",
-        description: error.message || "Failed to sell investment",
-        variant: "destructive",
-      });
+    {
+      id: 3,
+      property: properties.find(p => p.title.includes("Garden")) || properties[4],
+      tokensOwned: 450,
+      investmentAmount: 4500,
+      currentValue: 5045,
+      returns: 545,
+      returnsPercentage: 12.1
     }
-  });
-
-  // Real portfolio investments from API with property details
-  const portfolioInvestments = investments
-    .filter(inv => inv.userId === 1) // Filter by current user (in real app, use authenticated user)
-    .map(investment => {
-      const property = properties.find(p => p.id === investment.propertyId);
-      const investmentAmount = parseFloat(investment.investmentAmount);
-      const currentValue = parseFloat(investment.currentValue);
-      const returns = currentValue - investmentAmount;
-      const returnsPercentage = investmentAmount > 0 ? (returns / investmentAmount) * 100 : 0;
-      
-      return {
-        ...investment,
-        property,
-        investmentAmount,
-        currentValue,
-        returns,
-        returnsPercentage
-      };
-    })
-    .filter(inv => inv.property); // Only include investments where property is found
+  ];
 
   // Mock recent transactions
   const recentTransactions = [
@@ -152,70 +93,17 @@ export default function Portfolio() {
     }).format(amount);
   };
 
-  const handleViewProperty = (property: Property | undefined) => {
-    if (!property) {
-      toast({
-        title: "Error",
-        description: "Property not found",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setSelectedProperty(property);
+  const handleViewProperty = (property: Property) => {
     toast({
       title: "Property Details",
-      description: `Viewing ${property.title} details`,
+      description: `Viewing details for ${property?.title || 'property'}. This would open a detailed property view.`,
     });
-    
-    // In a real app, this would navigate to property details page
-    // For now, we'll show property info in the toast
-    setTimeout(() => {
-      toast({
-        title: property.title,
-        description: `${property.description || 'No description available'} - Expected ROI: ${property.expectedROI}%`,
-      });
-    }, 1000);
   };
 
   const handleSellTokens = (investment: any) => {
-    const property = properties.find(p => p.id === investment.propertyId);
-    if (!property) {
-      toast({
-        title: "Error",
-        description: "Property not found",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setSelectedInvestment(investment);
-    setSellDialogOpen(true);
-  };
-
-  const handleSellConfirm = () => {
-    if (!selectedInvestment || !sellPercentage) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid percentage to sell",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const percentage = parseFloat(sellPercentage);
-    if (percentage <= 0 || percentage > 100) {
-      toast({
-        title: "Error", 
-        description: "Percentage must be between 1 and 100",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    sellInvestmentMutation.mutate({
-      investmentId: selectedInvestment.id,
-      percentage
+    toast({
+      title: "Sell Tokens",
+      description: `Mock: Selling tokens for ${investment.property?.title || 'property'}. This would open a sell dialog.`,
     });
   };
 
@@ -404,75 +292,6 @@ export default function Portfolio() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Sell Investment Dialog */}
-        <Dialog open={sellDialogOpen} onOpenChange={setSellDialogOpen}>
-          <DialogContent className="sm:max-w-md" aria-describedby="sell-dialog-description">
-            <DialogHeader>
-              <DialogTitle>Sell Investment</DialogTitle>
-              <DialogDescription id="sell-dialog-description">
-                {selectedInvestment && (
-                  <>
-                    Sell tokens from your investment in {selectedInvestment.property?.title}.
-                    <br />
-                    Current Value: {formatCurrency(typeof selectedInvestment.currentValue === 'string' ? parseFloat(selectedInvestment.currentValue) : selectedInvestment.currentValue)}
-                    <br />
-                    Tokens Owned: {selectedInvestment.tokensOwned.toLocaleString()}
-                  </>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="sellPercentage">Percentage to Sell (%)</Label>
-                <Input
-                  id="sellPercentage"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={sellPercentage}
-                  onChange={(e) => setSellPercentage(e.target.value)}
-                  placeholder="Enter percentage (1-100)"
-                  className="mt-1"
-                />
-              </div>
-              
-              {sellPercentage && selectedInvestment && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="text-sm space-y-1">
-                    <div>Tokens to sell: {Math.floor((selectedInvestment.tokensOwned * parseFloat(sellPercentage)) / 100).toLocaleString()}</div>
-                    <div>Sale amount: {formatCurrency(Math.floor(((typeof selectedInvestment.currentValue === 'string' ? parseFloat(selectedInvestment.currentValue) : selectedInvestment.currentValue) * parseFloat(sellPercentage)) / 100))}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setSellDialogOpen(false)}
-                disabled={sellInvestmentMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSellConfirm}
-                disabled={sellInvestmentMutation.isPending || !sellPercentage}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {sellInvestmentMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Selling...
-                  </>
-                ) : (
-                  'Confirm Sale'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

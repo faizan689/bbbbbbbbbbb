@@ -1,7 +1,6 @@
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { AuthClient } from '@dfinity/auth-client';
 import { Principal } from '@dfinity/principal';
-import { mockICPClient } from './mock-icp-client';
 
 // Canister IDs (will be generated when deployed)
 export const CANISTER_IDS = {
@@ -112,7 +111,6 @@ class ICPClient {
   private agent: HttpAgent;
   private authClient: AuthClient | null = null;
   private isLocal: boolean;
-  private isAvailable: boolean = false;
 
   constructor() {
     this.isLocal = process.env.NODE_ENV === 'development';
@@ -120,171 +118,70 @@ class ICPClient {
       host: this.isLocal ? LOCAL_REPLICA_URL : 'https://ic0.app',
     });
 
-    // Check if ICP is available in development
+    // Fetch root key for local development
     if (this.isLocal) {
-      this.checkICPAvailability();
-    } else {
-      this.isAvailable = true;
-    }
-  }
-
-  private async checkICPAvailability() {
-    try {
-      await this.agent.fetchRootKey();
-      this.isAvailable = true;
-      console.log('ICP local replica is available');
-    } catch (err) {
-      this.isAvailable = false;
-      console.warn('ICP local replica not available, using mock mode');
+      this.agent.fetchRootKey().catch(err => {
+        console.warn('Unable to fetch root key. Check if local replica is running.');
+        console.error(err);
+      });
     }
   }
 
   async initAuth() {
     if (!this.authClient) {
-      try {
-        this.authClient = await AuthClient.create();
-      } catch (error) {
-        console.warn('Failed to create auth client:', error);
-        return null;
-      }
+      this.authClient = await AuthClient.create();
     }
     return this.authClient;
   }
 
   async login() {
-    if (!this.isAvailable && this.isLocal) {
-      // Mock login for development when ICP is not available
-      return await mockICPClient.login();
-    }
-
-    try {
-      const authClient = await this.initAuth();
-      if (!authClient) return false;
-
-      return new Promise<boolean>((resolve) => {
-        authClient.login({
-          identityProvider: this.isLocal 
-            ? `http://127.0.0.1:4943?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID || 'rdmx6-jaaaa-aaaaa-aaadq-cai'}`
-            : 'https://identity.ic0.app',
-          onSuccess: () => resolve(true),
-          onError: () => resolve(false),
-        });
+    const authClient = await this.initAuth();
+    return new Promise<boolean>((resolve) => {
+      authClient.login({
+        identityProvider: this.isLocal 
+          ? `http://127.0.0.1:4943?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID || 'rdmx6-jaaaa-aaaaa-aaadq-cai'}`
+          : 'https://identity.ic0.app',
+        onSuccess: () => resolve(true),
+        onError: () => resolve(false),
       });
-    } catch (error) {
-      console.warn('Login failed, using mock mode:', error);
-      return await mockICPClient.login();
-    }
+    });
   }
 
   async logout() {
-    if (!this.isAvailable && this.isLocal) {
-      return await mockICPClient.logout();
-    }
-
-    try {
-      const authClient = await this.initAuth();
-      if (authClient) {
-        await authClient.logout();
-      }
-    } catch (error) {
-      console.warn('Logout failed:', error);
-      await mockICPClient.logout();
-    }
+    const authClient = await this.initAuth();
+    await authClient.logout();
   }
 
   async isAuthenticated() {
-    if (!this.isAvailable && this.isLocal) {
-      return await mockICPClient.isUserAuthenticated();
-    }
-
-    try {
-      const authClient = await this.initAuth();
-      if (!authClient) return false;
-      return await authClient.isAuthenticated();
-    } catch (error) {
-      console.warn('Auth check failed, using mock mode:', error);
-      return await mockICPClient.isUserAuthenticated();
-    }
+    const authClient = await this.initAuth();
+    return await authClient.isAuthenticated();
   }
 
   async getIdentity() {
     const authClient = await this.initAuth();
-    if (!authClient) throw new Error('Auth client not available');
     return authClient.getIdentity();
   }
 
   async getPrincipal() {
-    if (!this.isAvailable && this.isLocal) {
-      // Return a mock principal for development
-      return Principal.fromText('2vxsx-fae');
-    }
-
-    try {
-      const identity = await this.getIdentity();
-      return identity.getPrincipal();
-    } catch (error) {
-      console.warn('Failed to get principal, using mock:', error);
-      return Principal.fromText('2vxsx-fae');
-    }
+    const identity = await this.getIdentity();
+    return identity.getPrincipal();
   }
 
   // Property Canister Methods
   async getProperties(): Promise<Property[]> {
-    if (!this.isAvailable && this.isLocal) {
-      // Use mock data when ICP is not available in development
-      const mockProperties = await mockICPClient.getProperties();
-      return mockProperties.map(p => ({
-        id: BigInt(p.id),
-        title: p.title,
-        description: p.description,
-        location: p.location,
-        property_type: p.propertyType,
-        total_value: BigInt(parseFloat(p.totalValue.replace(/[$,]/g, '')) * 100),
-        total_tokens: BigInt(p.totalTokens),
-        available_tokens: BigInt(p.availableTokens),
-        expected_roi: p.expectedROI,
-        min_investment: BigInt(parseFloat(p.minInvestment.replace(/[$,]/g, '')) * 100),
-        image_url: p.imageUrl,
-        is_active: p.isActive,
-        created_at: BigInt(p.createdAt?.getTime() || Date.now()),
-        owner: Principal.fromText('2vxsx-fae')
-      }));
+    const identity = await this.getIdentity();
+    const agent = new HttpAgent({ host: this.isLocal ? LOCAL_REPLICA_URL : 'https://ic0.app', identity });
+    
+    if (this.isLocal) {
+      await agent.fetchRootKey();
     }
 
-    try {
-      const identity = await this.getIdentity();
-      const agent = new HttpAgent({ host: this.isLocal ? LOCAL_REPLICA_URL : 'https://ic0.app', identity });
-      
-      if (this.isLocal) {
-        await agent.fetchRootKey();
-      }
+    const actor = Actor.createActor(idlFactory.property, {
+      agent,
+      canisterId: CANISTER_IDS.property_canister,
+    });
 
-      const actor = Actor.createActor(idlFactory.property, {
-        agent,
-        canisterId: CANISTER_IDS.property_canister,
-      });
-
-      return await actor.get_properties() as Property[];
-    } catch (error) {
-      console.warn('Failed to fetch properties from ICP, using mock data:', error);
-      const mockProperties = await mockICPClient.getProperties();
-      return mockProperties.map(p => ({
-        id: BigInt(p.id),
-        title: p.title,
-        description: p.description,
-        location: p.location,
-        property_type: p.propertyType,
-        total_value: BigInt(parseFloat(p.totalValue.replace(/[$,]/g, '')) * 100),
-        total_tokens: BigInt(p.totalTokens),
-        available_tokens: BigInt(p.availableTokens),
-        expected_roi: p.expectedROI,
-        min_investment: BigInt(parseFloat(p.minInvestment.replace(/[$,]/g, '')) * 100),
-        image_url: p.imageUrl,
-        is_active: p.isActive,
-        created_at: BigInt(p.createdAt?.getTime() || Date.now()),
-        owner: Principal.fromText('2vxsx-fae')
-      }));
-    }
+    return await actor.get_properties() as Property[];
   }
 
   async createProperty(req: CreatePropertyRequest): Promise<{ Ok?: Property; Err?: string }> {
