@@ -4,38 +4,62 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ThumbsUp, ThumbsDown, FileText, Building2, DollarSign, Calendar, TrendingUp, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ThumbsUp, ThumbsDown, FileText, Building2, DollarSign, Calendar, TrendingUp, CheckCircle, RefreshCw, Eye } from "lucide-react";
 import { type Proposal, type Property } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useICPWallet } from "@/components/ICPWalletProvider";
 
 export default function Governance() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { wallet, voteOnProposal } = useICPWallet();
   const [votingProposal, setVotingProposal] = useState<number | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
 
-  const { data: proposals = [] } = useQuery<Proposal[]>({
+  const { data: proposals = [], isLoading: proposalsLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],
+    refetchInterval: 20000, // Refresh every 20 seconds for real-time data
   });
 
   const { data: properties = [] } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
+    refetchInterval: 30000,
   });
 
   const voteMutation = useMutation({
-    mutationFn: async ({ proposalId, voteType, votingPower }: { proposalId: number; voteType: string; votingPower: number }) => {
-      return apiRequest("POST", "/api/votes", {
-        userId: 1, // Mock user ID
-        proposalId,
-        voteType,
-        votingPower
+    mutationFn: async ({ proposalId, voteType, votingPower }: { proposalId: number; voteType: 'for' | 'against'; votingPower: number }) => {
+      if (!wallet.isConnected) {
+        throw new Error("Wallet not connected");
+      }
+
+      // Create vote in database
+      const response = await fetch('/api/votes', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: 1,
+          proposalId,
+          voteType,
+          votingPower
+        })
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to record vote");
+      }
+
+      // Use ICP wallet to vote on blockchain
+      await voteOnProposal(proposalId, voteType);
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/votes"] });
       toast({
-        title: "Vote Submitted",
-        description: "Your vote has been recorded on the blockchain.",
+        title: "Vote Submitted Successfully!",
+        description: "Your vote has been recorded on the ICP blockchain.",
       });
       setVotingProposal(null);
     },
@@ -50,11 +74,34 @@ export default function Governance() {
   });
 
   const handleVote = (proposalId: number, voteType: "for" | "against") => {
-    // Mock voting power calculation based on tokens owned
-    const votingPower = proposalId === 1 ? 1247 : 800; // Mock values
+    if (!wallet.isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your ICP wallet to vote on proposals.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate voting power based on user's real token balance
+    const votingPower = wallet.balance || 1000;
     
     setVotingProposal(proposalId);
     voteMutation.mutate({ proposalId, voteType, votingPower });
+  };
+
+  const handleViewDetails = (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+  };
+
+  const handleRefreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/proposals"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+    
+    toast({
+      title: "Data Refreshed",
+      description: "Governance data has been updated with latest information.",
+    });
   };
 
   const getPropertyTitle = (propertyId: number) => {

@@ -154,44 +154,58 @@ export class AIRecommendationEngine {
         - Market potential and growth prospects
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert real estate investment advisor. Provide data-driven property recommendations based on user profiles."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.4
-      });
+      let response;
+      try {
+        response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert real estate investment advisor. Provide data-driven property recommendations based on user profiles."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.4
+        });
 
-      const aiRecommendations = JSON.parse(response.choices[0].message.content || '{"recommendations": []}');
-      const recommendations = aiRecommendations.recommendations || [];
+        const aiRecommendations = JSON.parse(response.choices[0].message.content || '{"recommendations": []}');
+        const recommendations = aiRecommendations.recommendations || [];
 
-      // Map AI recommendations to full property objects
-      const propertyRecommendations: PropertyRecommendation[] = recommendations
-        .map((rec: any) => {
-          const property = availableProperties.find(p => p.id === rec.propertyId);
-          if (!property) return null;
-          
-          return {
-            property,
-            score: rec.score,
-            reasons: rec.reasons,
-            riskLevel: rec.riskLevel,
-            matchPercentage: rec.matchPercentage
-          };
-        })
-        .filter((rec: PropertyRecommendation | null): rec is PropertyRecommendation => rec !== null)
-        .sort((a: PropertyRecommendation, b: PropertyRecommendation) => b.score - a.score)
-        .slice(0, limit);
+        // Map AI recommendations to full property objects
+        const propertyRecommendations: PropertyRecommendation[] = recommendations
+          .map((rec: any) => {
+            const property = availableProperties.find(p => p.id === rec.propertyId);
+            if (!property) return null;
+            
+            return {
+              property,
+              score: rec.score,
+              reasons: rec.reasons,
+              riskLevel: rec.riskLevel,
+              matchPercentage: rec.matchPercentage
+            };
+          })
+          .filter((rec: PropertyRecommendation | null): rec is PropertyRecommendation => rec !== null)
+          .sort((a: PropertyRecommendation, b: PropertyRecommendation) => b.score - a.score)
+          .slice(0, limit);
 
-      return propertyRecommendations;
+        return propertyRecommendations;
+      } catch (apiError: any) {
+        console.error('OpenAI API Error:', apiError);
+        
+        // For quota exceeded or rate limit errors, generate algorithm-based recommendations
+        if (apiError?.status === 429 || apiError?.code === 'insufficient_quota') {
+          console.log('Generating fallback recommendations due to API limits');
+          return this.generateFallbackRecommendations(userProfile, availableProperties, limit);
+        }
+        
+        // For other errors, return empty array
+        return [];
+      }
     } catch (error) {
       console.error('Error generating recommendations:', error);
       return [];
@@ -249,6 +263,84 @@ export class AIRecommendationEngine {
       console.error('Error explaining recommendation:', error);
       return "Unable to generate detailed explanation at this time";
     }
+  }
+
+  // Fallback recommendation algorithm when OpenAI API is unavailable
+  private generateFallbackRecommendations(
+    userProfile: UserInvestmentProfile,
+    availableProperties: Property[],
+    limit: number
+  ): PropertyRecommendation[] {
+    const scoredProperties = availableProperties.map(property => {
+      let score = 0;
+      const reasons: string[] = [];
+      let riskLevel: 'low' | 'medium' | 'high' = 'medium';
+
+      // Investment amount match
+      const minInvestment = parseInt(property.minInvestment.replace(/[$,]/g, ''));
+      if (minInvestment >= userProfile.preferredInvestmentRange.min && 
+          minInvestment <= userProfile.preferredInvestmentRange.max) {
+        score += 30;
+        reasons.push('Investment amount fits your budget');
+      }
+
+      // Property type preference
+      if (userProfile.preferredPropertyTypes.includes(property.propertyType)) {
+        score += 25;
+        reasons.push('Matches your preferred property type');
+      }
+
+      // Location preference
+      const propertyLocation = property.location.toLowerCase();
+      const hasLocationMatch = userProfile.preferredLocations.some(loc => 
+        propertyLocation.includes(loc.toLowerCase())
+      );
+      if (hasLocationMatch) {
+        score += 20;
+        reasons.push('Located in your preferred area');
+      }
+
+      // ROI evaluation based on risk tolerance
+      const roi = parseFloat(property.expectedROI.replace('%', ''));
+      if (userProfile.riskTolerance === 'conservative') {
+        if (roi >= 6 && roi <= 10) {
+          score += 15;
+          riskLevel = 'low';
+          reasons.push('Conservative returns matching your risk profile');
+        }
+      } else if (userProfile.riskTolerance === 'moderate') {
+        if (roi >= 8 && roi <= 15) {
+          score += 15;
+          riskLevel = 'medium';
+          reasons.push('Balanced returns for moderate risk tolerance');
+        }
+      } else if (userProfile.riskTolerance === 'aggressive') {
+        if (roi >= 12) {
+          score += 15;
+          riskLevel = 'high';
+          reasons.push('High returns aligned with aggressive strategy');
+        }
+      }
+
+      // Token availability
+      if (property.availableTokens > property.totalTokens * 0.5) {
+        score += 10;
+        reasons.push('Good token availability');
+      }
+
+      return {
+        property,
+        score,
+        reasons,
+        riskLevel,
+        matchPercentage: Math.min(95, Math.max(10, score))
+      };
+    });
+
+    return scoredProperties
+      .filter(rec => rec.score > 20)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
   }
 }
 

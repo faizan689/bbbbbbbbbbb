@@ -8,7 +8,6 @@ import { Eye, TrendingUp, ArrowUpIcon, ArrowDownIcon, Plus, DollarSign, RefreshC
 import { type Property, type Investment, type Transaction } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useICPWallet } from "@/components/ICPWalletProvider";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function Portfolio() {
   const { toast } = useToast();
@@ -17,20 +16,20 @@ export default function Portfolio() {
   
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
-    refetchInterval: 30000, // Refresh every 30 seconds for real-time data
+    refetchInterval: 30000,
   });
 
   const { data: investments = [], isLoading: investmentsLoading } = useQuery<Investment[]>({
     queryKey: ["/api/investments"],
-    refetchInterval: 10000, // Refresh every 10 seconds for real-time data
+    refetchInterval: 10000,
   });
 
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
-    refetchInterval: 15000, // Refresh every 15 seconds for real-time data
+    refetchInterval: 15000,
   });
 
-  // Real portfolio investments with enhanced data
+  // Enhanced portfolio investments with proper type handling
   const portfolioInvestments = investments.map(investment => {
     const property = properties.find(p => p.id === investment.propertyId);
     const currentValue = parseFloat(investment.currentValue);
@@ -41,6 +40,8 @@ export default function Portfolio() {
     return {
       ...investment,
       property,
+      currentValueNum: currentValue,
+      investmentAmountNum: investmentAmount,
       returns,
       returnsPercentage: Math.round(returnsPercentage * 10) / 10
     };
@@ -58,12 +59,12 @@ export default function Portfolio() {
         throw new Error("Investment not found");
       }
       
-      // Create sale transaction first
+      // Create sale transaction
       const transactionResponse = await fetch('/api/transactions', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: 1, // Current user ID
+          userId: 1,
           propertyId: investment.propertyId,
           type: "sale",
           amount: investment.currentValue.toString(),
@@ -100,7 +101,6 @@ export default function Portfolio() {
         description: `Sold ${result.tokensOwned} tokens for ${formatCurrency(result.saleAmount)}. New balance: ${formatCurrency(result.newBalance)}`,
       });
       
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
@@ -113,37 +113,6 @@ export default function Portfolio() {
       });
     }
   });
-
-  // Mock recent transactions
-  const recentTransactions = [
-    {
-      id: 1,
-      type: "Token Purchase",
-      property: "Manhattan Luxury Residences",
-      amount: "+250 RTC",
-      date: "2 days ago",
-      icon: Plus,
-      color: "text-secondary"
-    },
-    {
-      id: 2,
-      type: "Dividend Payment",
-      property: "Downtown Business Center",
-      amount: "+$127.50",
-      date: "5 days ago",
-      icon: DollarSign,
-      color: "text-accent"
-    },
-    {
-      id: 3,
-      type: "Token Sale",
-      property: "Oceanview Condominiums",
-      amount: "-150 RTC",
-      date: "1 week ago",
-      icon: TrendingUp,
-      color: "text-primary"
-    }
-  ];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -194,10 +163,38 @@ export default function Portfolio() {
     });
   };
 
-  const totalPortfolioValue = portfolioInvestments.reduce((sum, inv) => sum + parseFloat(inv.currentValue), 0);
-  const totalInvested = portfolioInvestments.reduce((sum, inv) => sum + parseFloat(inv.investmentAmount.toString()), 0);
+  // Real-time transaction data
+  const recentTransactions = transactions.slice(0, 5).map(transaction => ({
+    id: transaction.id,
+    type: transaction.type === "purchase" ? "Token Purchase" : 
+          transaction.type === "dividend" ? "Dividend Payment" : "Token Sale",
+    property: properties.find(p => p.id === transaction.propertyId)?.title || "Unknown Property",
+    amount: transaction.type === "sale" ? `-${transaction.tokens} RTC` : 
+            transaction.type === "dividend" ? `+${formatCurrency(parseFloat(transaction.amount))}` :
+            `+${transaction.tokens} RTC`,
+    date: new Date(transaction.createdAt || Date.now()).toLocaleDateString(),
+    icon: transaction.type === "purchase" ? Plus : 
+          transaction.type === "dividend" ? DollarSign : TrendingUp,
+    color: transaction.type === "sale" ? "text-red-600" : "text-green-600"
+  }));
+
+  const totalPortfolioValue = portfolioInvestments.reduce((sum, inv) => sum + inv.currentValueNum, 0);
+  const totalInvested = portfolioInvestments.reduce((sum, inv) => sum + inv.investmentAmountNum, 0);
   const totalReturns = totalPortfolioValue - totalInvested;
   const totalReturnsPercentage = totalInvested > 0 ? (totalReturns / totalInvested) * 100 : 0;
+
+  if (investmentsLoading || propertiesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">Loading portfolio data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -209,6 +206,15 @@ export default function Portfolio() {
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Manage your real estate investments and track performance
           </p>
+          <Button 
+            onClick={handleRefreshData}
+            variant="outline" 
+            size="sm" 
+            className="mt-4"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
         </div>
 
         {/* Portfolio Summary */}
@@ -222,8 +228,8 @@ export default function Portfolio() {
                 {formatCurrency(totalPortfolioValue)}
               </div>
               <div className="flex items-center text-sm">
-                <ArrowUpIcon className="h-4 w-4 text-secondary mr-1" />
-                <span className="text-secondary font-medium">
+                <ArrowUpIcon className="h-4 w-4 text-green-600 mr-1" />
+                <span className="text-green-600 font-medium">
                   {formatCurrency(totalReturns)} ({totalReturnsPercentage.toFixed(1)}%)
                 </span>
               </div>
@@ -253,16 +259,19 @@ export default function Portfolio() {
                 {portfolioInvestments.reduce((sum, inv) => sum + inv.tokensOwned, 0).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                RTC Tokens owned
+                RealtyChain Tokens
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Portfolio Holdings Table */}
+        {/* Your Properties */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Your Properties</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Your Properties
+              <Badge variant="secondary">{portfolioInvestments.length} Active</Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -279,11 +288,11 @@ export default function Portfolio() {
                 </TableHeader>
                 <TableBody>
                   {portfolioInvestments.map((investment) => (
-                    <TableRow key={investment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableRow key={investment.id}>
                       <TableCell>
                         <div className="flex items-center">
-                          <img 
-                            src={investment.property?.imageUrl} 
+                          <img
+                            src={investment.property?.imageUrl || "/api/placeholder/48/48"}
                             alt={investment.property?.title}
                             className="w-12 h-12 rounded-lg object-cover mr-4"
                           />
@@ -301,15 +310,15 @@ export default function Portfolio() {
                         {investment.tokensOwned.toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(investment.investmentAmount)}
+                        {formatCurrency(investment.investmentAmountNum)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(investment.currentValue)}
+                        {formatCurrency(investment.currentValueNum)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
-                          <ArrowUpIcon className="h-4 w-4 text-secondary mr-1" />
-                          <span className="text-secondary font-medium">
+                          <ArrowUpIcon className="h-4 w-4 text-green-600 mr-1" />
+                          <span className="text-green-600 font-medium">
                             {formatCurrency(investment.returns)} ({investment.returnsPercentage}%)
                           </span>
                         </div>
@@ -328,8 +337,9 @@ export default function Portfolio() {
                             variant="destructive" 
                             size="sm"
                             onClick={() => handleSellTokens(investment)}
+                            disabled={sellMutation.isPending}
                           >
-                            Sell
+                            {sellMutation.isPending ? 'Selling...' : 'Sell'}
                           </Button>
                         </div>
                       </TableCell>

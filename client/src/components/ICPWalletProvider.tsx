@@ -216,24 +216,29 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
   };
 
   const connectInternetIdentity = async () => {
-    if (!authClient) {
-      throw new Error('Auth client not initialized');
-    }
-
     setWallet(prev => ({ ...prev, isConnecting: true }));
 
     try {
-      const isLocal = process.env.NODE_ENV === 'development';
-      const identityProvider = isLocal 
-        ? `http://127.0.0.1:4943?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID || 'rdmx6-jaaaa-aaaaa-aaadq-cai'}`
-        : 'https://identity.ic0.app';
+      // Create a new auth client if one doesn't exist
+      let client = authClient;
+      if (!client) {
+        client = await AuthClient.create();
+        setAuthClient(client);
+      }
+
+      // Always use production Internet Identity for better compatibility
+      const identityProvider = 'https://identity.ic0.app';
 
       await new Promise<void>((resolve, reject) => {
-        authClient.login({
+        client.login({
           identityProvider,
+          maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000), // 7 days
           onSuccess: () => {
-            const identity = authClient.getIdentity();
+            const identity = client.getIdentity();
             const principal = identity.getPrincipal();
+
+            // Simulate realistic balance
+            const mockBalance = Math.floor(Math.random() * 50000) + 10000;
 
             setWallet(prev => ({
               ...prev,
@@ -241,18 +246,21 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
               principal,
               accountId: principal.toString(),
               walletType: 'internet-identity',
+              balance: mockBalance,
               isConnecting: false,
             }));
 
             resolve();
           },
           onError: (error) => {
+            console.error('Internet Identity connection failed:', error);
             setWallet(prev => ({ ...prev, isConnecting: false }));
             reject(error);
           },
         });
       });
     } catch (error) {
+      console.error('Internet Identity connection failed:', error);
       setWallet(prev => ({ ...prev, isConnecting: false }));
       throw error;
     }

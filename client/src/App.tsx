@@ -10,7 +10,7 @@ import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
 import Marketplace from "@/pages/Marketplace";
 import Dashboard from "@/pages/Dashboard";
-import Portfolio from "@/pages/Portfolio";
+import Portfolio from "@/pages/PortfolioFixed";
 import Governance from "@/pages/Governance";
 import Recommendations from "@/pages/Recommendations";
 import NotFound from "@/pages/not-found";

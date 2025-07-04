@@ -108,6 +108,84 @@ async function seed() {
         minInvestment: "2000",
         imageUrl: "https://images.unsplash.com/photo-1555636222-cae831e670b3?w=400",
         isActive: true
+      },
+      {
+        title: "Mumbai Financial District Tower",
+        description: "Premium commercial tower in Bandra Kurla Complex, Mumbai's financial district.",
+        location: "Mumbai, Maharashtra",
+        propertyType: "Commercial",
+        totalValue: "3500000",
+        totalTokens: 3500,
+        availableTokens: 2450,
+        expectedROI: "15.8",
+        minInvestment: "800",
+        imageUrl: "https://images.unsplash.com/photo-1594736797933-d0d8e1f06ddb?w=400",
+        isActive: true
+      },
+      {
+        title: "Bangalore Tech Park",
+        description: "State-of-the-art IT campus in Electronic City with world-class infrastructure.",
+        location: "Bangalore, Karnataka",
+        propertyType: "Commercial",
+        totalValue: "2800000",
+        totalTokens: 2800,
+        availableTokens: 1960,
+        expectedROI: "16.2",
+        minInvestment: "600",
+        imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400",
+        isActive: true
+      },
+      {
+        title: "Delhi Luxury Residences",
+        description: "Ultra-luxurious residential complex in South Delhi with premium amenities.",
+        location: "New Delhi, Delhi",
+        propertyType: "Residential",
+        totalValue: "4200000",
+        totalTokens: 4200,
+        availableTokens: 2940,
+        expectedROI: "14.5",
+        minInvestment: "1000",
+        imageUrl: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400",
+        isActive: true
+      },
+      {
+        title: "Hyderabad IT Hub",
+        description: "Modern office complex in HITEC City, Hyderabad's IT corridor.",
+        location: "Hyderabad, Telangana",
+        propertyType: "Commercial",
+        totalValue: "2100000",
+        totalTokens: 2100,
+        availableTokens: 1470,
+        expectedROI: "17.1",
+        minInvestment: "500",
+        imageUrl: "https://images.unsplash.com/photo-1541746972996-4e0b0f93e586?w=400",
+        isActive: true
+      },
+      {
+        title: "Pune Metropolitan Mall",
+        description: "Premium shopping and entertainment complex in Pune's business district.",
+        location: "Pune, Maharashtra",
+        propertyType: "Retail",
+        totalValue: "1800000",
+        totalTokens: 1800,
+        availableTokens: 1260,
+        expectedROI: "13.8",
+        minInvestment: "400",
+        imageUrl: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=400",
+        isActive: true
+      },
+      {
+        title: "Chennai IT Corridor",
+        description: "Technology park in Old Mahabalipuram Road with modern facilities.",
+        location: "Chennai, Tamil Nadu",
+        propertyType: "Commercial",
+        totalValue: "2600000",
+        totalTokens: 2600,
+        availableTokens: 1820,
+        expectedROI: "15.3",
+        minInvestment: "650",
+        imageUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400",
+        isActive: true
       }
     ]).returning();
 
