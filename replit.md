@@ -80,7 +80,7 @@ The application uses a relational database schema with the following core entiti
 ### Data Persistence
 - All data operations use Drizzle ORM with type safety
 - Database migrations managed through Drizzle Kit
-- Connection pooling with @neondatabase/serverless
+- Connection pooling with standard PostgreSQL driver
 - Schema validation using Zod for API endpoints
 
 ## External Dependencies
