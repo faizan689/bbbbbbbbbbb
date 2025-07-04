@@ -17,6 +17,22 @@ const idParamSchema = z.object({
   })
 });
 
+// Additional validation schemas
+const paginationSchema = z.object({
+  page: z.string().optional().transform((val) => val ? Math.max(1, parseInt(val) || 1) : 1),
+  limit: z.string().optional().transform((val) => {
+    const parsed = parseInt(val || '10');
+    return Math.min(50, Math.max(1, parsed)); // Limit between 1-50
+  })
+});
+
+const investmentUpdateSchema = z.object({
+  isActive: z.boolean().optional(),
+  currentValue: z.string().optional()
+}).refine(data => Object.keys(data).length > 0, {
+  message: "At least one field must be provided for update"
+});
+
 // Error handling middleware
 const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -70,24 +86,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new ApiError(400, "Insufficient tokens available", "INSUFFICIENT_TOKENS");
     }
     
-    // Create investment
-    const investment = await storage.createInvestment(validatedData);
+    // Validate minimum investment amount
+    const minInvestment = parseInt(property.minInvestment.replace(/[^0-9]/g, ''));
+    const investmentAmount = parseInt(validatedData.investmentAmount.replace(/[^0-9]/g, ''));
     
-    // Update property available tokens
-    const newAvailableTokens = property.availableTokens - validatedData.tokensOwned;
-    await storage.updatePropertyTokens(validatedData.propertyId, newAvailableTokens);
+    if (investmentAmount < minInvestment) {
+      throw new ApiError(400, `Minimum investment required: $${minInvestment}`, "BELOW_MINIMUM");
+    }
     
-    // Create transaction record
-    await storage.createTransaction({
-      userId: validatedData.userId,
-      propertyId: validatedData.propertyId,
-      type: "purchase",
-      amount: validatedData.investmentAmount,
-      tokens: validatedData.tokensOwned,
-      transactionHash: `0x${Math.random().toString(16).substring(2, 66)}`
-    });
+    // Validate tokens are positive
+    if (validatedData.tokensOwned <= 0) {
+      throw new ApiError(400, "Token amount must be positive", "INVALID_TOKENS");
+    }
     
-    res.status(201).json(investment);
+    try {
+      // Create investment
+      const investment = await storage.createInvestment(validatedData);
+      
+      // Update property available tokens
+      const newAvailableTokens = property.availableTokens - validatedData.tokensOwned;
+      await storage.updatePropertyTokens(validatedData.propertyId, newAvailableTokens);
+      
+      // Create transaction record
+      await storage.createTransaction({
+        userId: validatedData.userId,
+        propertyId: validatedData.propertyId,
+        type: "purchase",
+        amount: validatedData.investmentAmount,
+        tokens: validatedData.tokensOwned,
+        transactionHash: `0x${Math.random().toString(16).substring(2, 66)}`
+      });
+      
+      res.status(201).json(investment);
+    } catch (dbError) {
+      console.error('Database error during investment creation:', dbError);
+      throw new ApiError(500, "Failed to create investment", "DB_ERROR");
+    }
   }));
 
   app.patch("/api/investments/:id", asyncHandler(async (req: any, res: any) => {
@@ -249,11 +283,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Recommendations routes
   app.get("/api/recommendations", asyncHandler(async (req: any, res: any) => {
     log("GET /api/recommendations", "api");
-    const userId = 1; // Use authenticated user ID in real implementation
-    const limit = parseInt(req.query.limit as string) || 5;
-    
-    const recommendations = await aiRecommendationEngine.generateRecommendations(userId, limit);
-    res.json(recommendations);
+    try {
+      const userId = 1; // Use authenticated user ID in real implementation
+      const limit = parseInt(req.query.limit as string) || 5;
+      
+      if (limit < 1 || limit > 20) {
+        return res.status(400).json({ error: "Limit must be between 1 and 20" });
+      }
+      
+      const recommendations = await aiRecommendationEngine.generateRecommendations(userId, limit);
+      res.json(recommendations);
+    } catch (error) {
+      console.error('Error generating recommendations:', error);
+      res.status(500).json({ error: "Failed to generate recommendations" });
+    }
   }));
 
   app.get("/api/recommendations/profile", asyncHandler(async (req: any, res: any) => {

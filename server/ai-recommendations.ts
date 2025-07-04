@@ -154,24 +154,33 @@ export class AIRecommendationEngine {
         - Market potential and growth prospects
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert real estate investment advisor. Provide data-driven property recommendations based on user profiles."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.4
-      });
+      let recommendations: any[] = [];
+      
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert real estate investment advisor. Provide data-driven property recommendations based on user profiles."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.4
+        });
 
-      const aiRecommendations = JSON.parse(response.choices[0].message.content || '{"recommendations": []}');
-      const recommendations = aiRecommendations.recommendations || [];
+        const aiRecommendations = JSON.parse(response.choices[0].message.content || '{"recommendations": []}');
+        recommendations = aiRecommendations.recommendations || [];
+      } catch (error) {
+        console.error('OpenAI API error, using fallback logic:', error);
+        
+        // Fallback to rule-based recommendations when OpenAI is unavailable
+        recommendations = this.generateFallbackRecommendations(availableProperties, userProfile);
+      }
 
       // Map AI recommendations to full property objects
       const propertyRecommendations: PropertyRecommendation[] = recommendations
@@ -196,6 +205,73 @@ export class AIRecommendationEngine {
       console.error('Error generating recommendations:', error);
       return [];
     }
+  }
+
+  private generateFallbackRecommendations(availableProperties: Property[], userProfile: UserInvestmentProfile): any[] {
+    return availableProperties.map((property, index) => {
+      const minInvestment = parseInt(property.minInvestment.replace(/[^0-9]/g, ''));
+      const expectedROI = parseFloat(property.expectedROI);
+      
+      // Simple rule-based scoring
+      let score = 50;
+      let reasons: string[] = [];
+      let riskLevel: 'low' | 'medium' | 'high' = 'medium';
+      
+      // Check investment range fit
+      if (minInvestment >= userProfile.preferredInvestmentRange.min && 
+          minInvestment <= userProfile.preferredInvestmentRange.max) {
+        score += 20;
+        reasons.push('Investment amount fits your preferred range');
+      }
+      
+      // Check property type preference
+      if (userProfile.preferredPropertyTypes.includes(property.propertyType)) {
+        score += 15;
+        reasons.push('Matches your preferred property type');
+      }
+      
+      // Check location preference
+      if (userProfile.preferredLocations.some(loc => 
+          property.location.toLowerCase().includes(loc.toLowerCase()))) {
+        score += 15;
+        reasons.push('Located in your preferred area');
+      }
+      
+      // Risk assessment based on ROI
+      if (expectedROI > 15) {
+        riskLevel = 'high';
+        if (userProfile.riskTolerance === 'aggressive') {
+          score += 10;
+          reasons.push('High ROI potential aligns with your risk tolerance');
+        }
+      } else if (expectedROI > 10) {
+        riskLevel = 'medium';
+        if (userProfile.riskTolerance === 'moderate') {
+          score += 10;
+          reasons.push('Balanced risk-return profile');
+        }
+      } else {
+        riskLevel = 'low';
+        if (userProfile.riskTolerance === 'conservative') {
+          score += 10;
+          reasons.push('Low-risk investment suitable for conservative approach');
+        }
+      }
+      
+      // Add general reasons if none specific
+      if (reasons.length === 0) {
+        reasons.push('Solid investment opportunity');
+        reasons.push('Available for fractional ownership');
+      }
+      
+      return {
+        propertyId: property.id,
+        score: Math.min(score, 100),
+        reasons: reasons.slice(0, 3),
+        riskLevel,
+        matchPercentage: Math.min(score, 100)
+      };
+    }).sort((a, b) => b.score - a.score);
   }
 
   async explainRecommendation(propertyId: number, userId: number): Promise<string> {
