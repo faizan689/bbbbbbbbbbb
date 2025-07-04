@@ -68,24 +68,33 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);
 
   useEffect(() => {
-    // Initialize auth client for Internet Identity
-    AuthClient.create().then(client => {
-      setAuthClient(client);
-      
-      // Check if already authenticated
-      if (client.isAuthenticated()) {
-        const identity = client.getIdentity();
-        const principal = identity.getPrincipal();
+    // Initialize auth client for Internet Identity with error handling
+    const initAuthClient = async () => {
+      try {
+        const client = await AuthClient.create();
+        setAuthClient(client);
         
-        setWallet(prev => ({
-          ...prev,
-          isConnected: true,
-          principal,
-          walletType: 'internet-identity',
-          accountId: principal.toString(),
-        }));
+        // Check if already authenticated
+        const isAuthenticated = await client.isAuthenticated();
+        if (isAuthenticated) {
+          const identity = client.getIdentity();
+          const principal = identity.getPrincipal();
+          
+          setWallet(prev => ({
+            ...prev,
+            isConnected: true,
+            principal,
+            walletType: 'internet-identity',
+            accountId: principal.toString(),
+          }));
+        }
+      } catch (error) {
+        console.warn('Internet Identity initialization failed:', error);
+        // Continue without Internet Identity support
       }
-    });
+    };
+
+    initAuthClient();
 
     // Check for existing Plug connection
     checkPlugConnection();
@@ -216,17 +225,36 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
   };
 
   const connectInternetIdentity = async () => {
-    if (!authClient) {
-      throw new Error('Auth client not initialized');
-    }
-
     setWallet(prev => ({ ...prev, isConnecting: true }));
 
     try {
-      const isLocal = process.env.NODE_ENV === 'development';
-      const identityProvider = isLocal 
-        ? `http://127.0.0.1:4943?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID || 'rdmx6-jaaaa-aaaaa-aaadq-cai'}`
-        : 'https://identity.ic0.app';
+      // For development, create a mock Internet Identity connection
+      if (import.meta.env.MODE === 'development') {
+        // Simulate connection delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Create a mock principal for development
+        const mockPrincipal = Principal.fromText('rrkah-fqaaa-aaaaa-aaaaq-cai');
+        
+        setWallet(prev => ({
+          ...prev,
+          isConnected: true,
+          principal: mockPrincipal,
+          accountId: mockPrincipal.toString(),
+          walletType: 'internet-identity',
+          isConnecting: false,
+          balance: 10000, // Mock balance for testing
+        }));
+        
+        return;
+      }
+
+      // Production Internet Identity connection
+      if (!authClient) {
+        throw new Error('Internet Identity is not available. Please try another wallet.');
+      }
+
+      const identityProvider = 'https://identity.ic0.app';
 
       await new Promise<void>((resolve, reject) => {
         authClient.login({
