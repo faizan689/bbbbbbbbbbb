@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "canisters": {
+    "property_canister": {
+      "type": "rust",
+      "package": "property_canister"
+    },
+    "user_canister": {
+      "type": "rust", 
+      "package": "user_canister"
+    },
+    "investment_canister": {
+      "type": "rust",
+      "package": "investment_canister"
+    },
+    "governance_canister": {
+      "type": "rust",
+      "package": "governance_canister"
+    },
+    "frontend": {
+      "type": "assets",
+      "source": ["dist/public"]
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    }
+  }
+}

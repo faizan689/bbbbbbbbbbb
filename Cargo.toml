@@ -1,0 +1,15 @@
+[workspace]
+members = [
+    "src/property_canister",
+    "src/user_canister", 
+    "src/investment_canister",
+    "src/governance_canister"
+]
+
+[workspace.dependencies]
+candid = "0.10"
+ic-cdk = "0.13"
+ic-cdk-macros = "0.9"
+ic-stable-structures = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
