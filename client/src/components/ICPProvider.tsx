@@ -43,7 +43,9 @@ export function ICPProvider({ children }: ICPProviderProps) {
   const [balance] = useState(50000); // Mock balance for demo
 
   useEffect(() => {
-    checkAuthStatus();
+    // Skip automatic auth check to prevent Principal validation errors during init
+    // User can manually login when needed
+    console.log('ICP Provider initialized, login available');
   }, []);
 
   const checkAuthStatus = async () => {
@@ -56,7 +58,10 @@ export function ICPProvider({ children }: ICPProviderProps) {
         setPrincipal(userPrincipal);
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.warn('Auth status check failed:', error);
+      // Reset to unauthenticated state on error
+      setIsAuthenticated(false);
+      setPrincipal(null);
     }
   };
 

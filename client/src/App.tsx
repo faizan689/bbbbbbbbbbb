@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ICPProvider } from "@/components/ICPProvider";
+import { ICPWalletProvider } from "@/components/ICPWalletProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
@@ -34,12 +35,14 @@ function App() {
   return (
     <ErrorBoundary>
       <ICPProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ThemeProvider>
+        <ICPWalletProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ThemeProvider>
+        </ICPWalletProvider>
       </ICPProvider>
     </ErrorBoundary>
   );
