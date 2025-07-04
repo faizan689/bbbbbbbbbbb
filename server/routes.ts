@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Supabase configuration endpoint for frontend
-  app.get("/api/supabase-config", asyncHandler(async (req, res) => {
+  app.get("/api/supabase-config", asyncHandler(async (req: Request, res: Response) => {
     log("GET /api/supabase-config", "api");
     
     // Only provide public configuration
