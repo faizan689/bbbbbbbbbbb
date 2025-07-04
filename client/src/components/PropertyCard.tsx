@@ -1,9 +1,15 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Building2, MapPin, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Building2, MapPin, TrendingUp, Wallet } from "lucide-react";
 import { type Property } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useICPWallet } from "@/components/ICPWalletProvider";
+import { queryClient } from "@/lib/queryClient";
 
 interface PropertyCardProps {
   property: Property;
@@ -11,6 +17,10 @@ interface PropertyCardProps {
 
 export default function PropertyCard({ property }: PropertyCardProps) {
   const { toast } = useToast();
+  const { wallet, investInProperty } = useICPWallet();
+  const [investmentAmount, setInvestmentAmount] = useState("");
+  const [isInvesting, setIsInvesting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const formatCurrency = (amount: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -38,12 +48,68 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     ? ((property.totalTokens - property.availableTokens) / property.totalTokens) * 100 
     : 0;
 
-  const handleInvest = () => {
-    toast({
-      title: "Investment Initiated",
-      description: `Mock: Starting investment process for ${property.title}. This would open an investment dialog.`,
-    });
+  const handleInvestmentSubmit = async () => {
+    if (!wallet.isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your ICP wallet to invest in properties.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amount = parseFloat(investmentAmount);
+    const minInvestment = parseFloat(property.minInvestment);
+
+    if (!amount || amount < minInvestment) {
+      toast({
+        title: "Invalid Investment Amount",
+        description: `Minimum investment is ${formatCurrency(property.minInvestment)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (amount > wallet.balance) {
+      toast({
+        title: "Insufficient Balance",
+        description: `Your wallet balance is ${wallet.balance.toLocaleString()} RTC.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsInvesting(true);
+    try {
+      await investInProperty(property.id, amount);
+      
+      toast({
+        title: "Investment Successful! 🎉",
+        description: `Successfully invested ${formatCurrency(investmentAmount)} in ${property.title}`,
+      });
+
+      // Reset form and close dialog
+      setInvestmentAmount("");
+      setIsDialogOpen(false);
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      
+    } catch (error) {
+      toast({
+        title: "Investment Failed",
+        description: "There was an error processing your investment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInvesting(false);
+    }
   };
+
+  const maxTokens = Math.floor(wallet.balance / 100); // Assuming 100 USD per token
+  const tokensFromAmount = investmentAmount ? Math.floor(parseFloat(investmentAmount) / 100) : 0;
 
   return (
     <div className="property-card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
@@ -97,16 +163,108 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           <Progress value={tokenProgress} className="h-2" />
         </div>
         
-        <Button 
-          onClick={handleInvest}
-          className="w-full bg-primary hover:bg-primary/90"
-          disabled={property.availableTokens === 0}
-        >
-          {property.availableTokens === 0 
-            ? "Fully Funded" 
-            : `Invest Now - Min ${formatCurrency(property.minInvestment)}`
-          }
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="w-full bg-primary hover:bg-primary/90"
+              disabled={property.availableTokens === 0}
+            >
+              {property.availableTokens === 0 
+                ? "Fully Funded" 
+                : `Invest Now - Min ${formatCurrency(property.minInvestment)}`
+              }
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Invest in {property.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label className="text-muted-foreground">Property Type</Label>
+                  <p className="font-medium">{property.propertyType}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Expected ROI</Label>
+                  <p className="font-medium text-green-600">{property.expectedROI}%</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Min Investment</Label>
+                  <p className="font-medium">{formatCurrency(property.minInvestment)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Available Tokens</Label>
+                  <p className="font-medium">{property.availableTokens.toLocaleString()}</p>
+                </div>
+              </div>
+              
+              {wallet.isConnected ? (
+                <>
+                  <div className="p-3 bg-secondary/10 rounded-lg">
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Wallet Balance:</span>
+                      <span className="font-medium">{wallet.balance.toLocaleString()} RTC</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Connected as:</span>
+                      <span className="font-medium">{wallet.walletType}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="investment-amount">Investment Amount (USD)</Label>
+                    <Input
+                      id="investment-amount"
+                      type="number"
+                      placeholder={`Min: ${formatCurrency(property.minInvestment)}`}
+                      value={investmentAmount}
+                      onChange={(e) => setInvestmentAmount(e.target.value)}
+                      min={parseFloat(property.minInvestment)}
+                      max={wallet.balance}
+                    />
+                    {tokensFromAmount > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        This will purchase approximately {tokensFromAmount} tokens
+                      </p>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    onClick={handleInvestmentSubmit}
+                    disabled={isInvesting || !investmentAmount || parseFloat(investmentAmount) < parseFloat(property.minInvestment)}
+                    className="w-full"
+                  >
+                    {isInvesting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing Investment...
+                      </>
+                    ) : (
+                      `Invest ${investmentAmount ? formatCurrency(investmentAmount) : ''}`
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <div className="text-center space-y-4">
+                  <p className="text-muted-foreground">
+                    Connect your ICP wallet to invest in this property
+                  </p>
+                  <Button 
+                    onClick={() => setIsDialogOpen(false)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Connect Wallet First
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { WalletProvider } from "@/components/WalletProvider";
 import { ICPWalletProvider } from "@/components/ICPWalletProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
@@ -36,14 +35,12 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <WalletProvider>
-            <ICPWalletProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Router />
-              </TooltipProvider>
-            </ICPWalletProvider>
-          </WalletProvider>
+          <ICPWalletProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ICPWalletProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

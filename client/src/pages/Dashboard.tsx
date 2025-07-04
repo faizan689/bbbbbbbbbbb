@@ -1,9 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import PortfolioChart from "@/components/charts/PortfolioChart";
 import AssetAllocationChart from "@/components/charts/AssetAllocationChart";
-import { TrendingUp, Building2, DollarSign, Wallet, ArrowUpIcon } from "lucide-react";
+import { TrendingUp, Building2, DollarSign, Wallet, ArrowUpIcon, Activity, RefreshCw, ExternalLink } from "lucide-react";
+import { useICPWallet } from "@/components/ICPWalletProvider";
+import { type Investment, type Transaction } from "@shared/schema";
 
 interface DashboardData {
   totalPortfolioValue: number;
@@ -16,8 +20,17 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { wallet } = useICPWallet();
   const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
+  });
+
+  const { data: investments = [] } = useQuery<Investment[]>({
+    queryKey: ["/api/investments"],
+  });
+
+  const { data: transactions = [] } = useQuery<Transaction[]>({
+    queryKey: ["/api/transactions"],
   });
 
   if (isLoading) {
@@ -145,11 +158,11 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-purple-100 text-sm font-medium mb-2">Token Balance</p>
-                  <p className="text-3xl font-bold text-white mb-3">{(dashboardData?.tokenBalance || 0).toLocaleString()}</p>
+                  <p className="text-purple-100 text-sm font-medium mb-2">ICP Wallet Balance</p>
+                  <p className="text-3xl font-bold text-white mb-3">{wallet.balance.toLocaleString()} RTC</p>
                   <p className="text-purple-200 text-sm flex items-center">
                     <Wallet className="h-4 w-4 mr-1" />
-                    ETH Balance
+                    {wallet.isConnected ? `Connected (${wallet.walletType})` : 'Not Connected'}
                   </p>
                 </div>
                 <div className="ml-4">
@@ -192,49 +205,161 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-4">
-              {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.length === 0) ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="h-8 w-8 text-gray-400" />
+        {/* ICP Wallet & Activity Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          {/* ICP Wallet Status */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                ICP Wallet Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Connection Status</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className={`w-2 h-2 rounded-full ${wallet.isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {wallet.isConnected ? 'Connected' : 'Disconnected'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No recent transactions</p>
-                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Your investment activity will appear here</p>
+                  <Badge variant={wallet.isConnected ? "default" : "secondary"}>
+                    {wallet.walletType || 'None'}
+                  </Badge>
                 </div>
-              ) : (
-                dashboardData.recentTransactions.map((transaction, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-4">
-                        <ArrowUpIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                
+                {wallet.isConnected && (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Wallet Balance</span>
+                        <span className="font-semibold text-lg text-gray-900 dark:text-white">
+                          {wallet.balance.toLocaleString()} RTC
+                        </span>
                       </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white text-base">
-                          {transaction?.type || 'Unknown Transaction'}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Property Investment</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900 dark:text-white text-lg">
-                        {formatCurrency(parseFloat(transaction?.amount || '0'))}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {transaction?.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Account ID</span>
+                        <span className="font-mono text-sm text-gray-900 dark:text-white truncate max-w-32">
+                          {wallet.accountId}
+                        </span>
                       </div>
                     </div>
+                    
+                    <Button variant="outline" size="sm" className="w-full">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View on ICP Explorer
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Your Investments */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Your Investments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                {investments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No investments yet</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Start investing in properties</p>
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                ) : (
+                  investments.slice(0, 3).map((investment) => (
+                    <div key={investment.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">Property #{investment.propertyId}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {investment.tokensOwned.toLocaleString()} tokens
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {formatCurrency(parseFloat(investment.currentValue))}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          Active
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {investments.length > 3 && (
+                  <Button variant="ghost" size="sm" className="w-full mt-3">
+                    View All ({investments.length})
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Activity
+                </div>
+                <Button variant="ghost" size="sm">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No transactions yet</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Activity will appear here</p>
+                  </div>
+                ) : (
+                  transactions.slice(0, 4).map((transaction) => (
+                    <div key={transaction.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        transaction.type === 'investment' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                      }`}>
+                        {transaction.type === 'investment' ? (
+                          <ArrowUpIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                          {transaction.type}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          Property #{transaction.propertyId}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {formatCurrency(parseFloat(transaction.amount))}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

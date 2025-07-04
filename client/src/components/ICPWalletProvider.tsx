@@ -35,6 +35,9 @@ interface ICPWalletContextType {
   connectInternetIdentity: () => Promise<void>;
   disconnect: () => Promise<void>;
   isWalletInstalled: (walletType: 'plug' | 'stoic') => boolean;
+  investInProperty: (propertyId: number, amount: number) => Promise<void>;
+  sellProperty: (investmentId: number) => Promise<void>;
+  voteOnProposal: (proposalId: number, voteType: 'for' | 'against') => Promise<void>;
 }
 
 const ICPWalletContext = createContext<ICPWalletContextType | undefined>(undefined);
@@ -284,6 +287,116 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const investInProperty = async (propertyId: number, amount: number) => {
+    if (!wallet.isConnected) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // Simulate ICP canister call with real backend integration
+      const response = await fetch('/api/investments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          propertyId,
+          tokensOwned: Math.floor(amount / 100), // Convert amount to tokens
+          investmentAmount: amount.toString(),
+          currentValue: amount.toString(),
+          userId: 1, // Use authenticated user ID
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Investment failed');
+      }
+
+      // Update wallet balance
+      setWallet(prev => ({
+        ...prev,
+        balance: prev.balance - amount,
+      }));
+
+      return response.json();
+    } catch (error) {
+      console.error('Investment error:', error);
+      throw error;
+    }
+  };
+
+  const sellProperty = async (investmentId: number) => {
+    if (!wallet.isConnected) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // Get investment details first
+      const investmentResponse = await fetch(`/api/investments/${investmentId}`);
+      const investment = await investmentResponse.json();
+
+      // Simulate sale transaction
+      const saleResponse = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 1,
+          propertyId: investment.propertyId,
+          type: 'sale',
+          amount: investment.currentValue,
+          tokensTransferred: investment.tokensOwned,
+        }),
+      });
+
+      if (!saleResponse.ok) {
+        throw new Error('Sale failed');
+      }
+
+      // Update wallet balance
+      setWallet(prev => ({
+        ...prev,
+        balance: prev.balance + parseFloat(investment.currentValue),
+      }));
+
+      return saleResponse.json();
+    } catch (error) {
+      console.error('Sale error:', error);
+      throw error;
+    }
+  };
+
+  const voteOnProposal = async (proposalId: number, voteType: 'for' | 'against') => {
+    if (!wallet.isConnected) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      const response = await fetch('/api/votes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 1,
+          proposalId,
+          voteType,
+          votingPower: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Vote failed');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Vote error:', error);
+      throw error;
+    }
+  };
+
   return (
     <ICPWalletContext.Provider
       value={{
@@ -293,6 +406,9 @@ export function ICPWalletProvider({ children }: { children: ReactNode }) {
         connectInternetIdentity,
         disconnect,
         isWalletInstalled,
+        investInProperty,
+        sellProperty,
+        voteOnProposal,
       }}
     >
       {children}

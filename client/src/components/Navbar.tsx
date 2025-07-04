@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/ThemeProvider";
-import { useWallet } from "@/components/WalletProvider";
 import { useICPWallet } from "@/components/ICPWalletProvider";
 import { Moon, Sun, Wallet, ChevronDown, LogOut, Link2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -11,7 +10,6 @@ import { useState } from "react";
 export default function Navbar() {
   const [location] = useLocation();
   const { theme, setTheme } = useTheme();
-  const { wallet, connectWallet, disconnectWallet } = useWallet();
   const { wallet: icpWallet, disconnect: disconnectICP } = useICPWallet();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
@@ -60,52 +58,7 @@ export default function Navbar() {
               )}
             </Button>
             
-{/* Traditional Wallet */}
-            {wallet.isConnected ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <Wallet className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {wallet.address?.substring(0, 8)}...
-                    </span>
-                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                      {wallet.balance.toLocaleString()} RTC
-                    </span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="p-3 border-b">
-                    <div className="text-sm font-medium">Ethereum Wallet</div>
-                    <div className="text-xs text-muted-foreground">{wallet.address}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Balance: {wallet.balance.toLocaleString()} RTC
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Network: {wallet.network}
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={disconnectWallet} className="text-red-600">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Disconnect Wallet
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                onClick={connectWallet} 
-                disabled={wallet.isConnecting}
-                variant="outline"
-                className="mr-2"
-              >
-                <Wallet className="h-4 w-4 mr-2" />
-                {wallet.isConnecting ? "Connecting..." : "Connect ETH"}
-              </Button>
-            )}
-
-            {/* ICP Wallet */}
+{/* ICP Wallet Only */}
             {icpWallet.isConnected ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
